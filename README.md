@@ -32,7 +32,7 @@ Some build system integration is already planned:
 
 ### Importing as a Python module:
 
-Clone this repository into a folder called "globifest" in the same directory as other scripts you want to use, or install it to your system library.
+Import the "globifest" module in the root directory, or install it to your system library.
 
 ### Building deliverables via the command line:
 
