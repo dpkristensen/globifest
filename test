@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+"""
+    globifest/test - globifest Test Suite
+
+    Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+    * Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
+import re
+import sys
+import test
+import time
+import types
+import unittest
+
+import GlobifestLib
+from GlobifestLib import *
+
+import Globitest
+from Globitest import *
+
+def get_tests():
+    class_list = []
+    for module_name in dir(Globitest):
+        module_inst = eval("Globitest.{}".format(module_name))
+        if not isinstance(module_inst, types.ModuleType):
+            continue
+
+        for class_name in dir(module_inst):
+            class_inst = eval("Globitest.{}.{}".format(module_name, class_name))
+            if not isinstance(class_inst, type):
+                continue
+
+            if not issubclass(class_inst, unittest.TestCase):
+                continue
+
+            for func_name in dir(class_inst):
+                func_inst = eval("Globitest.{}.{}.{}".format(module_name, class_name, func_name))
+                if not isinstance(func_inst, types.FunctionType):
+                    continue
+
+                if not func_name.startswith("test"):
+                    continue
+
+                class_list.append(dict(
+                    desc = "{}.{}".format(class_name, func_name),
+                    cname = "Globitest.{}.{}".format(module_name, class_name),
+                    fname = func_name
+                    ))
+    return class_list
+
+
+def get_test_result(passed):
+    if passed:
+        return "PASSED"
+    else:
+        return "FAILED"
+
+class CustomTestResult(unittest.TestResult):
+
+    def __init__(self, stream, descriptions, verbosity):
+        super_class = super(CustomTestResult, self)
+        super_class.__init__(stream, descriptions, verbosity)
+
+        self.tests_passed = 0
+        self.tests_failed = 0
+        self.testsRun = 0
+        self.failed_tests = []
+        self.last_test_class = ""
+
+    def handle_result(self, test, passed):
+        test_name = "{}.{}".format(type(test).__name__, test._testMethodName)
+        if passed:
+            self.tests_passed += 1
+        else:
+            self.tests_failed += 1
+            self.failed_tests.append(test_name)
+        print("{} | {}".format(get_test_result(passed), test._testMethodName))
+
+    def print_double_separator(self, test_class):
+        print("========" + "=" * (len(test_class) + 1))
+
+    def print_last_test_name(self):
+        if "" != self.last_test_class:
+            self.print_double_separator(self.last_test_class)
+            stop_time = time.perf_counter() - self.test_start_time
+            print("  END  | {} ({:0.3f}s)".format(self.last_test_class, stop_time))
+
+    def addError(self, test, err):
+        print(self._exc_info_to_string(err, test))
+        self.handle_result(test, False)
+
+    def addFailure(self, test, err):
+        print(self._exc_info_to_string(err, test))
+        self.handle_result(test, False)
+
+    def addSuccess(self, test):
+        self.handle_result(test, True)
+
+    def addSubTest(self, test, subtest, err):
+        print("{}")
+
+    def startTest(self, test):
+        self.testsRun += 1
+        test_class = type(test).__name__
+        if self.last_test_class != test_class:
+            self.print_last_test_name()
+
+            self.last_test_class = test_class
+            self.test_start_time = time.perf_counter()
+            print("\n BEGIN | {}".format(test_class))
+            self.print_double_separator(test_class)
+        print("RUN    | {}".format(test._testMethodName))
+
+    def stopTestRun(self):
+        pass
+
+    def printErrors(self):
+        pct = 0
+        if self.testsRun > 0:
+            pct = int(self.tests_passed * 100 / self.testsRun)
+        self.print_last_test_name()
+        print("\nSUMMARY:")
+        print(
+            "{}/{}/{} {}% (pass/fail/total)".format(
+            self.tests_passed,
+            self.tests_failed,
+            self.testsRun,
+            pct
+            ))
+        if len(self.failed_tests) != 0:
+            print("\nERRORS:")
+            for err in self.failed_tests:
+                print(err)
+
+    def wasSuccessful(self):
+        return self.tests_failed == 0
+
+loader = unittest.TestLoader()
+suite = unittest.TestSuite()
+
+test_list = get_tests()
+if len(sys.argv) <= 1:
+    match_expresions = [".*"]
+else:
+    match_expresions = sys.argv[1:]
+
+suite = unittest.TestSuite()
+test_inst = dict()
+for expr_text in match_expresions:
+    expr = re.compile(expr_text)
+    for test in test_list:
+        if expr.match(test["desc"]):
+            # Must instantiate the class before adding
+            key = test["desc"]
+            if not hasattr(test_inst, key):
+                obj = eval("{}(methodName='{}')".format(test["cname"], test["fname"]))
+                test_inst[key] = obj
+            suite.addTest(test_inst[key])
+
+runner = unittest.TextTestRunner()
+runner.resultclass = CustomTestResult
+
+# Very detailed errors
+Log.Logger.set_level(Log.LEVEL.EXTREME)
+
+runner.run(suite)
