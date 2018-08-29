@@ -42,21 +42,30 @@ BOUNDED_STATE = Util.create_enum(
 class BoundedStatefulParser(StatefulParser.Base):
     """
         Parser which extracts text between two boundary characters
+
+        @note This parser also tracks strings, which override boundary detection
     """
 
-    def __init__(self, text, lbound, rbound=None, flags=0):
+    def __init__(self, text, lbound, rbound=None, flags=0, string_delims="\"'", string_escape="\\"):
         StatefulParser.Base.__init__(self, text, flags)
 
+        # Set search parameters
         self.lbound = lbound
         if rbound is None:
             self.rbound = lbound
         else:
             self.rbound = rbound
+        self.string_is_bound = lbound in string_delims
+        self.string_delims = string_delims
+        self.string_escape = string_escape
 
+        # Set state parameters
         self._set_state(BOUNDED_STATE.LBOUND)
         self.stack_level = 0
+        self.string_char = None
 
         self._debug("L=\"{}\" R=\"{}\"".format(self.lbound, self.rbound))
+        self._debug("STRD={} STRE={}".format(self.string_delims, self.string_escape))
 
         if len(text) != 0:
             self.parse()
@@ -73,10 +82,68 @@ class BoundedStatefulParser(StatefulParser.Base):
             # Nothing to parse
             return
 
+        # TODO: Optimize loop to find in one pass?
         lpos = self.text.find(self.lbound)
         rpos = self.text.find(self.rbound)
+        if self.string_char is None:
+            # If no string is started, look for the earliest delimeter
+            strd_pos = -1
+            for delim in self.string_delims:
+                dpos = self.text.find(delim)
+                if strd_pos == -1:
+                    strd_pos = dpos
+                elif (dpos >= 0) and (dpos < strd_pos):
+                    strd_pos = dpos
+        else:
+            # Use the previous delimeter if a string is started
+            strd_pos = self.text.find(self.string_char)
+        stre_pos = self.text.find(self.string_escape)
+        self._debug("lpos={} rpos={} sdpos={} sepos={}".format(lpos, rpos, strd_pos, stre_pos))
 
-        self._debug("lpos={} rpos={}".format(lpos, rpos))
+        # Check string logic first, since it overrides boundary logic
+        if self.string_char is not None:
+            # String has been started; end string before returning to boundary logic
+            if strd_pos >= 0:
+                # String delimiter is found
+                self._debug("Append string")
+                if (stre_pos >= 0) and ((stre_pos + 1) == strd_pos):
+                    # Escaped delimiter, skip
+                    self._append_parsed_text(self.text[:strd_pos + 1])
+                    self.text = self.text[strd_pos + 1:]
+                    return
+                else:
+                    self._debug("End string")
+                    self.string_char = None
+                    if not self.string_is_bound:
+                        # If the string is not the boundary, consider it parsed here
+                        self._append_parsed_text(self.text[:strd_pos + 1])
+                        self.text = self.text[strd_pos + 1:]
+                        return
+            else:
+                # No need to check string_is_bound, since no boundary to process either way.
+                self._debug("Append whole string")
+                self._append_parsed_text(self.text)
+                self.text = ""
+                return
+
+        elif strd_pos >= 0:
+            if (lpos >= 0) and (strd_pos > lpos):
+                # String begins after the left boundary
+                pass
+            elif (rpos >= 0) and (strd_pos > rpos):
+                # String begins after the right boundary
+                pass
+            else:
+                # Not in a string; but one is being started
+                self.string_char = self.text[strd_pos]
+                self._debug("Enter string: {}".format(self.string_char))
+                if not self.string_is_bound:
+                    # If the string is not the boundary, consider it parsed here
+                    self._append_parsed_text(self.text[:strd_pos + 1])
+                    self.text = self.text[strd_pos + 1:]
+                    return
+
+        # Check boundary logic
         if (lpos < 0) and (rpos < 0):
             # Neither boundary is present
             if (self.parsed_text == "") and (self._get_state() == BOUNDED_STATE.LBOUND):

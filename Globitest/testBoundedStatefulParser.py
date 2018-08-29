@@ -45,6 +45,10 @@ class TestBoundedStatefulParser(unittest.TestCase):
         self.parser = BoundedStatefulParser.new(text, "'", flags=FLAGS.DEBUG)
         return self.parser
 
+    def create_dq_string_parser(self, text):
+        self.parser = BoundedStatefulParser.new(text, "\"", flags=FLAGS.DEBUG)
+        return self.parser
+
     def create_parenthases_parser(self, text):
         self.parser = BoundedStatefulParser.new(text, "(", ")", flags=FLAGS.DEBUG | FLAGS.MULTI_LEVEL)
         return self.parser
@@ -194,6 +198,81 @@ class TestBoundedStatefulParser(unittest.TestCase):
         self.assertEqual("hi", p.get_parsed_text())
         self.assertEqual(" there", p.get_remaining_text())
 
+    def test_parenthases_with_string1(self):
+        # Verify parentheses with an embedded string
+        p = self.create_parenthases_parser("('hi' there)")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("'hi' there", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string2(self):
+        # Verify parentheses with an embedded string, using alternate string character
+        p = self.create_parenthases_parser('("hi" there)')
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual('"hi" there', p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string3(self):
+        # Verify parentheses with an embedded string, with nesting levels before and after string
+        p = self.create_parenthases_parser("((hi) 'there' (guys))")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("(hi) 'there' (guys)", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string4(self):
+        # Verify parentheses with an embedded string, with unmatched parentheses inside the string
+        p = self.create_parenthases_parser("('th(ere')")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("'th(ere'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string5(self):
+        # Verify parentheses with an embedded string, with unmatched parentheses inside the string
+        p = self.create_parenthases_parser("('the)re')")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("'the)re'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string6(self):
+        # Verify a string with parentheses after the match
+        p = self.create_parenthases_parser("(hi)'(there)'")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi", p.get_parsed_text())
+        self.assertEqual("'(there)'", p.get_remaining_text())
+
+    def test_parenthases_with_string7(self):
+        # Verify a string with parentheses and escapes
+        p = self.create_parenthases_parser("(hi'(\\'there)')")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi'(\\'there)'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string8(self):
+        # Verify a string with parentheses and escapes
+        p = self.create_parenthases_parser("")
+        self.assertEqual(PARSE_STATUS.INCOMPLETE, p.parse("(hi '"))
+        self.assertEqual(PARSE_STATUS.INCOMPLETE, p.parse("\\')there(\\'"))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.parse("' guys)"))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi '\\')there(\\'' guys", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_parenthases_with_string9(self):
+        # Verify a string with parentheses and mixed string delimeters
+        p = self.create_parenthases_parser("(hi 'there\\'\") guys')")
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi 'there\\'\") guys'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_string_alternate_bound(self):
+        p = self.create_dq_string_parser("")
+
+        # Verify string with different boundary characters
+        self.assertEqual(PARSE_STATUS.FINISHED, p.parse("\"hi there'\""))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi there'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
     def test_string_complete1(self):
         # Verify string is found in initial load
         p = self.create_string_parser("'hi'")
@@ -270,3 +349,39 @@ class TestBoundedStatefulParser(unittest.TestCase):
         self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
         self.assertEqual("hi", p.get_parsed_text())
         self.assertEqual(" there", p.get_remaining_text())
+
+    def test_string_with_escape1(self):
+        p = self.create_string_parser("'hi \\'there\\''")
+
+        # Verify string parsing with escaped string delimiters
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi \\'there\\'", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_string_with_escape2(self):
+        p = self.create_string_parser("'hi \\\"there\\\"'")
+
+        # Verify string parsing with escaped string delimiter which is not the boundary
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi \\\"there\\\"", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_string_with_escape3(self):
+        p = self.create_string_parser("")
+
+        # Verify string parsing in sequence
+        self.assertEqual(PARSE_STATUS.INCOMPLETE, p.parse("'hi"))
+        self.assertEqual(PARSE_STATUS.INCOMPLETE, p.parse(" there "))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.parse("\\'guys'"))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi there \\'guys", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
+
+    def test_string_with_escape4(self):
+        p = self.create_dq_string_parser("")
+
+        # Verify string with different boundary characters and escapes
+        self.assertEqual(PARSE_STATUS.FINISHED, p.parse("\"hi \\\"guys\""))
+        self.assertEqual(PARSE_STATUS.FINISHED, p.get_status())
+        self.assertEqual("hi \\\"guys", p.get_parsed_text())
+        self.assertEqual("", p.get_remaining_text())
