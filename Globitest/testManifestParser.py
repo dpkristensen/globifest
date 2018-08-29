@@ -139,7 +139,7 @@ class TestManifestParser(unittest.TestCase):
         for data in [
             ("1", "a"),
             ("2", "b"),
-            ("3", "c")
+            ("3", "c"),
             ("4", "d")
             ]:
             self.trace_msg = "sel = " + data[0]
