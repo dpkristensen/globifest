@@ -31,8 +31,6 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import re
-
 class Matcher:
     """
         Helper class to test regex matches in an if/else ladder
@@ -48,6 +46,7 @@ class Matcher:
         return self.result.group(idx)
 
     def get_num_matches(self):
+        """Returns the number of groups matched"""
         if not self.found:
             return 0
         return len(self.result.groups())

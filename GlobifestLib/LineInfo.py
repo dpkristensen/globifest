@@ -45,15 +45,19 @@ class LineInfo:
         return "{}:{}".format(self.manifest.get_filename(), self.line)
 
     def get_filename(self):
+        """Return the filename where this line of text originated"""
         return self.manifest.get_filename()
 
     def get_line(self):
+        """Return the line number where this line of text originated"""
         return self.line
 
     def get_text(self):
+        """Return the text contents of this line"""
         return self.text
 
     def set_text(self, text):
+        """Replace the cached content of the line"""
         self.text = text
 
 new = LineInfo

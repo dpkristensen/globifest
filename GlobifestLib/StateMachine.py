@@ -45,8 +45,8 @@ class StateMachine(Log.Debuggable):
         Log.Debuggable.__init__(self, debug_mode)
 
         self._sm_base = Util.Container(
-            state = 0,
-            new_state = 0
+            state=0,
+            new_state=0
             )
         self.title = "state"
 
@@ -78,6 +78,9 @@ class StateMachine(Log.Debuggable):
 Base = StateMachine
 
 def Owned(parent, title):
+    """
+    Factory method to create an owned state machine, which links to the parent's debug log.
+    """
     sm = StateMachine()
     sm.link_debug_log(parent)
     sm._set_title(title)

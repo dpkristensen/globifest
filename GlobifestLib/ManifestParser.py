@@ -1,4 +1,4 @@
-4#/usr/bin/env python
+#/usr/bin/env python
 """
     globifest/Builder.py - globifest
 
@@ -34,26 +34,18 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import glob
-import os
 import pathlib
 import re
 
 from GlobifestLib import \
     BoundedStatefulParser, \
-    ConfigSet, \
-    LineInfo, \
     Log, \
     Matcher, \
-    Manifest, \
-    ManifestReader, \
     StatefulParser, \
     StateMachine, \
     Util
 
 from GlobifestLib.StatefulParser import FLAGS as PARSERFLAGS
-
-#todo: rewrite all this stuff to use manifest, lineinfo, and manifestreader
 
 FILE_LABELS = [
     "aux_files",
@@ -104,14 +96,14 @@ class ManifestParser(StateMachine.Base):
             regex_flags = re.DEBUG
 
         # line regexes, in order of matching
-        self.comment_re = re.compile(";.*",regex_flags)
-        self.directive_re = re.compile(":.*",regex_flags)
+        self.comment_re = re.compile(";.*", regex_flags)
+        self.directive_re = re.compile(":.*", regex_flags)
 
         # directive regexes (preceding colon and whitespace stripped off), in order of matching
-        self.condition_if_re = re.compile("if(.*)",regex_flags)
-        self.condition_elif_re = re.compile("elif(.*)",regex_flags)
-        self.condition_else_re = re.compile("else[ |$](.*)",regex_flags)
-        self.label_re = re.compile("([a-z_]+)",regex_flags)
+        self.condition_if_re = re.compile("if(.*)", regex_flags)
+        self.condition_elif_re = re.compile("elif(.*)", regex_flags)
+        self.condition_else_re = re.compile("else[ |$](.*)", regex_flags)
+        self.label_re = re.compile("([a-z_]+)", regex_flags)
 
         # Other context variables
         self.label = None
@@ -126,10 +118,8 @@ class ManifestParser(StateMachine.Base):
         return FILE_LABELS + PATH_LABELS + RAW_LABELS
 
     def get_manifest(self):
+        """Returns the Manifest which is being parsed"""
         return self.manifest
-
-    def get_results(self):
-        return out
 
     def log_error(self, err_text):
         """
@@ -154,7 +144,7 @@ class ManifestParser(StateMachine.Base):
             return
 
         m = Matcher.new(line)
-        if (not line) or (line==""):
+        if (not line) or (line == ""):
             # empty
             pass
         elif m.is_fullmatch(self.comment_re):
@@ -328,16 +318,20 @@ class ManifestParser(StateMachine.Base):
             self.cond_block.append(self.line_info)
 
             if self.cond_parser.get_remaining_text() != "":
-                self.log_error("Unexpected text after condition block: {}".format(self.cond_parser.get_remaining_text()))
+                self.log_error(
+                    "Unexpected text after condition block: {}".format(
+                        self.cond_parser.get_remaining_text()
+                        )
+                    )
             self._transition(STATE.PARSE)
             del self.cond_parser
 
             # Create a new parser to parse the condition context
             block_parser = new(
-                manifest = self.manifest,
-                configset = self.configset,
-                debug_mode = self.get_debug_mode(),
-                validate_files = self.validate_files
+                manifest=self.manifest,
+                configset=self.configset,
+                debug_mode=self.get_debug_mode(),
+                validate_files=self.validate_files
                 )
             # Set a few additional states for the new parser
             block_parser.label = self.label

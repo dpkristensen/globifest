@@ -31,9 +31,9 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__      = "Daniel Kristensen"
-__license__     = "BSD"
-__copyright__   = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
+__author__ = "Daniel Kristensen"
+__license__ = "BSD"
+__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
 
 __all__ = [
     "Helpers",

@@ -62,7 +62,7 @@ class StatefulParser(StateMachine.Base):
         self.text = text
         self.last_parsed_text = ""
         self.parsed_text = ""
-        self.status = PARSE_STATUS.INCOMPLETE;
+        self.status = PARSE_STATUS.INCOMPLETE
         self.err_line = 0
         self.loop_count = 0
 
@@ -74,24 +74,32 @@ class StatefulParser(StateMachine.Base):
         if self.is_flag_set(FLAGS.DEBUG):
             frame = Util.get_stackframe(2)
             if frame:
-                err_text = err_text + "\n    @{}:{}".format(frame.f_code.co_filename, frame.f_lineno)
+                err_text = err_text + "\n    @{}:{}".format(
+                    frame.f_code.co_filename,
+                    frame.f_lineno
+                    )
         Log.E(err_text, is_fatal=False)
         self.status = PARSE_STATUS.ERROR
 
     def get_parsed_text(self):
+        """Returns all of the text which was matched by the machine"""
         return self.parsed_text
 
     def get_last_parsed_text(self):
+        """Returns the last text which was parsed by the machine"""
         return self.last_parsed_text
 
     def get_remaining_text(self):
+        """Returns the text which has not been parsed"""
         return self.text
 
     def get_status(self):
+        """Returns parse status"""
         return self.status
 
     def is_flag_set(self, flag):
-        return 0 != (self.flags & flag)
+        """Returns whether flag is set"""
+        return (self.flags & flag) != 0
 
     def parse(self, new_text=""):
         """
@@ -111,7 +119,7 @@ class StatefulParser(StateMachine.Base):
         self._debug("state={}".format(self._get_new_state()))
         self._debug_log_text()
 
-        while (self.status != PARSE_STATUS.ERROR):
+        while self.status != PARSE_STATUS.ERROR:
             self.loop_count += 1
             self._debug("--loop {}--".format(self.loop_count))
 
@@ -131,20 +139,20 @@ class StatefulParser(StateMachine.Base):
 
             if self.status == PARSE_STATUS.ERROR:
                 # Stop on error, leave text as unparsed
-                break;
+                break
 
             if self.status == PARSE_STATUS.FINISHED:
                 # Parsed all required data
-                break;
+                break
 
             # No state change, so add all remaining text as parsed
             self._append_parsed_text(self.text)
-            self.text =""
+            self.text = ""
             self._debug("text->parsed")
 
-            if len(self.text) == 0:
+            if not self.text:
                 # Ran out of data to parse
-                break;
+                break
 
         return self.status
 

@@ -35,8 +35,14 @@ import copy
 import inspect
 
 def create_enum(*identifiers):
+    """
+    Create an enumeration class from a list of identifiers passed as strings.  Each value
+    increments over the previous by 1.
+
+    If not defined, COUNT will be defined as the last identifier.
+    """
     values = dict(zip(identifiers, range(len(identifiers))))
-    if not ("COUNT" in values):
+    if "COUNT" not in values:
         values["COUNT"] = len(identifiers)
 
     values["__str__"] = _enum_str
@@ -45,8 +51,14 @@ def create_enum(*identifiers):
 
 
 def create_flag_enum(*identifiers):
+    """
+    Create an enumeration class from a list of identifiers passed as strings.  Each value
+    will be a power of 2.
+
+    If not defined, ALL will be defined as a bitmask setting all bits to 1.
+    """
     bits = dict(zip(identifiers, power_of_2(range(len(identifiers)))))
-    if not ("ALL" in bits):
+    if "ALL" not in bits:
         bits["ALL"] = (2 ** len(identifiers)) - 1
 
     bits["__str__"] = _enum_str
@@ -55,6 +67,9 @@ def create_flag_enum(*identifiers):
 
 
 def get_line_number(levels=1):
+    """
+    Get the line number from the specified stack frame
+    """
     frame = get_stackframe(levels)
     if not frame:
         return -1
@@ -62,13 +77,19 @@ def get_line_number(levels=1):
 
 
 def get_stackframe(levels=1):
+    """
+    Get the specified stack frame
+    """
     frame = inspect.currentframe()
-    for i in range(0,levels):
+    for _i in range(0, levels):
         frame = frame.f_back
     return frame
 
 
 def power_of_2(in_list):
+    """
+    Return a list of powers of 2, corresponding to each value from in_list.
+    """
     return [2 ** n for n in in_list]
 
 
@@ -91,13 +112,13 @@ class Container(dict):
 
     def __deepcopy__(self, memo):
         new_obj = Container()
-        for k,v in self.items():
+        for k, v in self.items():
             new_obj[k] = copy.deepcopy(v, memo)
         return new_obj
 
     def __str__(self):
         outstr = ""
-        for top_key,top_value in self.items():
+        for top_key, top_value in self.items():
             if isinstance(top_value, list):
                 outstr += "\n{}:".format(top_key)
                 for entry in top_value:
@@ -112,7 +133,7 @@ class Container(dict):
         out_dict = copy.deepcopy(self)
 
         # Add/Remove any element in the 2nd list that does not exist in the first
-        for k,v in other:
+        for k, v in other:
             if k not in out_dict:
                 # Add any missing top-level element
                 out_dict[k] = copy.deepcopy(v)
@@ -120,7 +141,7 @@ class Container(dict):
                 o1 = [e for e in out_dict[k] if e not in other[k]]
                 o2 = [e for e in other[k] if e not in out_dict[k]]
                 out_dict[k] = o1 + o2
-                if len(out_dict[k]) == 0:
+                if not out_dict[k]:
                     del out_dict[k]
             else:
                 # Remove any top-level non-iterable element

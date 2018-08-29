@@ -44,7 +44,7 @@ class Manifest:
 
     def __str__(self):
         outstr = "File: {}".format(self.fname)
-        for label_key,label_value in self.out:
+        for label_key, label_value in self.out:
             outstr += "\n{}:".format(label_key)
             for entry in label_value:
                 outstr += "\n  {}".format(entry)
@@ -52,15 +52,19 @@ class Manifest:
         return outstr
 
     def add_entry(self, typename, entry):
+        """Add an entry of the given type"""
         self.out[typename] += [entry]
 
     def add_type(self, typename):
+        """Add a table to the output for the given type"""
         self.out[typename] = []
 
     def get_filename(self):
+        """Returns the filename of the manifest"""
         return self.fname
 
     def get_output(self):
+        """Returns the output of the manifest"""
         return self.out
 
 new = Manifest

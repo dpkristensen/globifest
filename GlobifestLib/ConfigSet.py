@@ -36,6 +36,10 @@ import re
 from GlobifestLib import BoundedStatefulParser, Log, Matcher, StatefulParser, Util
 
 class TokenBase(object):
+    """
+        Base class for all logical tokens to be evaluated
+    """
+
     def get_name(self):
         return str(self.get_value())
 
@@ -49,12 +53,20 @@ class TokenBase(object):
         return isinstance(self.get_value(), type(tok.get_value()))
 
 class BoolToken(TokenBase):
+    """
+        Token which evaluates to a bool
+    """
+
     TOKEN_TYPE = "bool"
 
     def __init__(self, value):
         self.value = value
 
 class IntToken(TokenBase):
+    """
+        Token which evaluates to an int
+    """
+
     TOKEN_TYPE = "int"
 
     def __init__(self, text):
@@ -64,12 +76,20 @@ class IntToken(TokenBase):
             Log.E("{} is not a number".format(text))
 
 class StringToken(TokenBase):
+    """
+        Token which evaluates to a string
+    """
+
     TOKEN_TYPE = "string"
 
     def __init__(self, text):
         self.value = text
 
 class IdentToken(TokenBase):
+    """
+        Token which is an identifier, whose value is determined by the config.
+    """
+
     TOKEN_TYPE = "identifier"
     STRING_CONFIG_RE = re.compile("^\"(.*)\"$")
 
@@ -115,6 +135,10 @@ class IdentToken(TokenBase):
         return self.ident_class.TOKEN_TYPE == tok_type
 
 class OpBase(Log.Debuggable):
+    """
+        Base class for all operations
+    """
+
     def __init__(self, parent):
         Log.Debuggable.__init__(self)
         self.tokens = list()
@@ -128,7 +152,11 @@ class OpBase(Log.Debuggable):
 
     def get_error(self):
         if len(self.tokens) > self.NUM_ARGS:
-            return "{} expects {} args, found {}".format(self.OP_TEXT, self.NUM_ARGS, len(self.tokens))
+            return "{} expects {} args, found {}".format(
+                self.OP_TEXT,
+                self.NUM_ARGS,
+                len(self.tokens)
+                )
 
         return None
 
@@ -136,6 +164,10 @@ class OpBase(Log.Debuggable):
         return len(self.tokens) == self.NUM_ARGS
 
 class OpUnaryBase(OpBase):
+    """
+        Base class for unary operations
+    """
+
     NUM_ARGS = 1
 
     def _eval_check_type(self, base_type):
@@ -159,6 +191,10 @@ class OpUnaryBase(OpBase):
         return result
 
 class OpBinaryBase(OpBase):
+    """
+        Base class for binary operations
+    """
+
     NUM_ARGS = 2
     WORKS_WITH_STRING = False
 
@@ -212,6 +248,10 @@ class OpBinaryBase(OpBase):
         return result
 
 class OpInverse(OpUnaryBase):
+    """
+        Base class for logical invert operation
+    """
+
     OP_TEXT = "!"
 
     def _eval_get_expr(self):
@@ -221,29 +261,61 @@ class OpInverse(OpUnaryBase):
         return self._eval_op(BoolToken)
 
 class OpCompareBase(OpBinaryBase):
+    """
+        Base class for logical comparisons
+    """
+
     pass
 
 class OpCompareEq(OpCompareBase):
+    """
+        Base class for equality comparison
+    """
+
     OP_TEXT = "=="
     WORKS_WITH_STRING = True
 
 class OpCompareNe(OpCompareBase):
+    """
+        Base class for inequality comparison
+    """
+
     OP_TEXT = "!="
     WORKS_WITH_STRING = True
 
 class OpCompareLt(OpCompareBase):
+    """
+        Base class for magnitude less than comparison
+    """
+
     OP_TEXT = "<"
 
 class OpCompareLe(OpCompareBase):
+    """
+        Base class for magnitude less than or equal comparison
+    """
+
     OP_TEXT = "<="
 
 class OpCompareGt(OpCompareBase):
+    """
+        Base class for magnitude greater than comparison
+    """
+
     OP_TEXT = ">"
 
 class OpCompareGe(OpCompareBase):
+    """
+        Base class for magnitude greater than or equal comparison
+    """
+
     OP_TEXT = ">="
 
 class OpLogicalBase(OpBinaryBase):
+    """
+        Base class for logical combination operations
+    """
+
     def _eval_check_types(self):
         for t in self.tokens:
             if not t.matches_class(BoolToken):
@@ -253,10 +325,18 @@ class OpLogicalBase(OpBinaryBase):
         return "arg1 {} arg2".format(self.LOGICAL_OP)
 
 class OpLogicalAnd(OpLogicalBase):
+    """
+        Base class for AND operation
+    """
+
     OP_TEXT = "&&"
     LOGICAL_OP = "and"
 
 class OpLogicalOr(OpLogicalBase):
+    """
+        Base class for OR operation
+    """
+
     OP_TEXT = "||"
     LOGICAL_OP = "or"
 
@@ -268,11 +348,11 @@ RESERVED_IDENT = Util.create_enum(
     )
 
 RESERVED_IDENT_MAP = Util.Container(
-    TRUE = (True, BoolToken),
-    FALSE = (False, BoolToken)
+    TRUE=(True, BoolToken),
+    FALSE=(False, BoolToken)
 )
 
-assert(RESERVED_IDENT.COUNT == len(RESERVED_IDENT_MAP))
+assert RESERVED_IDENT.COUNT == len(RESERVED_IDENT_MAP)
 
 class ConfigSet(Log.Debuggable):
     """
@@ -283,27 +363,30 @@ class ConfigSet(Log.Debuggable):
         Log.Debuggable.__init__(self, debug_mode)
         self.configs = configs
 
-        for k,v in configs:
+        for k, _v in configs:
             if k in RESERVED_IDENT_MAP:
                 self.Logs.E("Identifier {} is reserved".format(k))
 
-        self.ident_re = re.compile("^([a-zA-Z_0-9]+)(.*)")
-        self.string_re = re.compile("^([a-zA-Z_0-9]+)(.*)")
-        self.int_re = re.compile("^([0-9\-]+)(.*)")
-        self.op_re = re.compile("^(!=|==|=|!|<=|<|>=|>|&&|\|\|)(.*)")
-        self.whitespace_re = re.compile("^\s+(.*)")
+        self.ident_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
+        self.string_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
+        self.int_re = re.compile(r"^([0-9\-]+)(.*)")
+        self.op_re = re.compile(r"^(!=|==|=|!|<=|<|>=|>|&&|\|\|)(.*)")
+        self.whitespace_re = re.compile(r"^\s+(.*)")
 
     def __str__(self):
         outstr = "Configs:\n" + str(self.configs)
         return outstr
 
     def get_value(self, name):
+        """Returns the configuration value of the identifier"""
         return self.configs[name]
 
     def has_value(self, name):
+        """Returns whether the identifier is in the configuration"""
         return name in self.configs
 
     def evaluate(self, expr):
+        """Evaluate the logical expression"""
         self.expr = expr
 
         BOUNDED_PARSER_FLAGS = 0
@@ -355,7 +438,7 @@ class ConfigSet(Log.Debuggable):
                     mapped_ident = RESERVED_IDENT_MAP[ident]
                     mapped_class = mapped_ident[RESERVED_IDENT.CLASS]
                     mapped_value = mapped_ident[RESERVED_IDENT.VALUE]
-                    self._debug("RESERVED: {} class={}".format(
+                    self._debug("RESERVED: {} class={} value={}".format(
                         ident,
                         mapped_class.TOKEN_TYPE,
                         mapped_value
@@ -369,7 +452,7 @@ class ConfigSet(Log.Debuggable):
 
             if m.is_fullmatch(self.op_re):
                 self._debug("OP: " + m[1])
-                if op != None:
+                if op is not None:
                     Log.E("Spurious operator '{}' after operator '{}'".format(m[1], op.OP_TEXT))
                 if m[1] == "!":
                     if tok:
@@ -414,7 +497,11 @@ class ConfigSet(Log.Debuggable):
                 continue
 
             if self.expr[0] == "\"":
-                string_parser = BoundedStatefulParser.new(self.expr, "\"", flags=BOUNDED_PARSER_FLAGS)
+                string_parser = BoundedStatefulParser.new(
+                    self.expr,
+                    "\"",
+                    flags=BOUNDED_PARSER_FLAGS
+                    )
                 if StatefulParser.PARSE_STATUS.FINISHED != string_parser.get_status():
                     Log.E("Malformed string in expression: " + self.expr)
                 self._debug("STRING DQ: " + string_parser.get_parsed_text())
@@ -423,7 +510,11 @@ class ConfigSet(Log.Debuggable):
                 continue
 
             if self.expr[0] == "'":
-                string_parser = BoundedStatefulParser.new(self.expr, "'", flags=BOUNDED_PARSER_FLAGS)
+                string_parser = BoundedStatefulParser.new(
+                    self.expr,
+                    "'",
+                    flags=BOUNDED_PARSER_FLAGS
+                    )
                 if StatefulParser.PARSE_STATUS.FINISHED != string_parser.get_status():
                     Log.E("Malformed string in expression: " + self.expr)
                 self._debug("STRING SQ: " + string_parser.get_parsed_text())
@@ -433,12 +524,12 @@ class ConfigSet(Log.Debuggable):
 
             Log.E("Bad expression: " + self.expr)
 
-        if tok == None:
+        if tok is None:
             Log.E("Cannot evaluate expression")
         elif isinstance(tok, BoolToken):
             return tok.value
         elif isinstance(tok, IntToken):
-            return 0 != tok.value
+            return tok.value != 0
         else:
             Log.E("Expression of type '{}' is not convertible to bool".format(tok.TOKEN_TYPE))
 
