@@ -85,7 +85,7 @@ class BoundedStatefulParser(StatefulParser.Base):
         # TODO: Optimize loop to find in one pass?
         lpos = self.text.find(self.lbound)
         rpos = self.text.find(self.rbound)
-        if self.string_char is None:
+        if self.string_char == None:
             # If no string is started, look for the earliest delimeter
             strd_pos = -1
             for delim in self.string_delims:
@@ -101,7 +101,7 @@ class BoundedStatefulParser(StatefulParser.Base):
         self._debug("lpos={} rpos={} sdpos={} sepos={}".format(lpos, rpos, strd_pos, stre_pos))
 
         # Check string logic first, since it overrides boundary logic
-        if self.string_char is not None:
+        if self.string_char != None:
             # String has been started; end string before returning to boundary logic
             if strd_pos >= 0:
                 # String delimiter is found
