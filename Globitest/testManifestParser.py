@@ -67,19 +67,24 @@ class TestManifestParser(unittest.TestCase):
                 if cond_parser:
                     print("COND PARSER DEBUG LOG:")
                     print(cond_parser.get_debug_log())
-            if self.pipe:
+            if hasattr(self, "pipe") and self.pipe:
                 print("ERRORS:")
                 print(self.pipe.getvalue().rstrip())
-            print("PARSED MANIFEST:")
-            print(self.manifest)
+            if hasattr(self, "manifest"):
+                print("PARSED MANIFEST:")
+                print(self.manifest)
+            else:
+                print("NO MANIFEST!")
 
         # Unreference the objects in reverse order
         if hasattr(self, "reader"):
             del self.reader
         if hasattr(self, "parser"):
             del self.parser
-        del self.manifest
-        del self.pipe
+        if hasattr(self, "manifest"):
+            del self.manifest
+        if hasattr(self, "pipe"):
+            del self.pipe
 
     def create_parser(self, configs = Util.Container()):
         # The manifest and reader are not under test, but simple enough to use directly
