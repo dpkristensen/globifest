@@ -34,6 +34,7 @@
 """
 
 import inspect
+import io
 import os
 import sys
 
@@ -138,6 +139,29 @@ def D(msg):
 def X(msg):
     """Log an extremely detailed message"""
     Logger.log_msg(LEVEL.EXTREME, msg)
+
+class CaptureStdout(object):
+    """
+        Context Manager class to capture stdout from python statements
+    """
+    def __init__(self, debuggable, header):
+        self.debuggable = debuggable
+        self.header = header
+        self.orig_stdout = sys.stdout
+        self.stream = io.StringIO()
+
+    def __enter__(self):
+        sys.stdout = self.stream
+        return self
+
+    def __exit__(self, var_type, var_value, traceback):
+        if self.stream:
+            # Only print if something was captured
+            self.debuggable._debug(self.header)
+            for line in self.stream.getvalue().splitlines():
+                self.debuggable._debug(line)
+        del self.stream
+        sys.stdout = self.orig_stdout
 
 class Debuggable(object):
     """

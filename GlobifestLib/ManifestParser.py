@@ -96,14 +96,20 @@ class ManifestParser(StateMachine.Base):
             regex_flags = re.DEBUG
 
         # line regexes, in order of matching
-        self.comment_re = re.compile(";.*", regex_flags)
-        self.directive_re = re.compile(":.*", regex_flags)
+        with Log.CaptureStdout(self, "COMMENT_RE:"):
+            self.comment_re = re.compile(";.*", regex_flags)
+        with Log.CaptureStdout(self, "DIRECTIVE_RE:"):
+            self.directive_re = re.compile(":.*", regex_flags)
 
         # directive regexes (preceding colon and whitespace stripped off), in order of matching
-        self.condition_if_re = re.compile("if(.*)", regex_flags)
-        self.condition_elif_re = re.compile("elif(.*)", regex_flags)
-        self.condition_else_re = re.compile("else[ |$](.*)", regex_flags)
-        self.label_re = re.compile("([a-z_]+)", regex_flags)
+        with Log.CaptureStdout(self, "CONDITION_IF_RE:"):
+            self.condition_if_re = re.compile("if(.*)", regex_flags)
+        with Log.CaptureStdout(self, "CONDITION_ELIF_RE:"):
+            self.condition_elif_re = re.compile("elif(.*)", regex_flags)
+        with Log.CaptureStdout(self, "CONDITION_ELSE_RE:"):
+            self.condition_else_re = re.compile("else[ |$](.*)", regex_flags)
+        with Log.CaptureStdout(self, "LABEL_RE:"):
+            self.label_re = re.compile("([a-z_]+)", regex_flags)
 
         # Other context variables
         self.label = None
@@ -173,6 +179,7 @@ class ManifestParser(StateMachine.Base):
         if self.get_debug_mode():
             flags |= PARSERFLAGS.DEBUG
         self.cond_parser = BoundedStatefulParser.new(text, "(", ")", flags)
+        self.cond_parser.link_debug_log(self)
 
         self._proc_condition_text()
 
@@ -297,6 +304,7 @@ class ManifestParser(StateMachine.Base):
             if self.get_debug_mode():
                 flags |= PARSERFLAGS.DEBUG
             self.cond_parser = BoundedStatefulParser.new(remaining_text, "{", "}", flags)
+            self.cond_parser.link_debug_log(self)
 
             status = self.cond_parser.get_status()
             if status == StatefulParser.PARSE_STATUS.FINISHED:

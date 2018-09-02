@@ -59,14 +59,11 @@ class TestManifestParser(unittest.TestCase):
         Log.Logger.set_err_pipe(sys.stderr)
         if not self._outcome.success:
             if self.trace_msg:
+                print("TRACE:")
                 print(self.trace_msg)
             if hasattr(self, "parser"):
                 print("PARSER DEBUG LOG:")
                 print(self.parser.get_debug_log())
-                cond_parser = getattr(self.parser, "cond_parser", None)
-                if cond_parser:
-                    print("COND PARSER DEBUG LOG:")
-                    print(cond_parser.get_debug_log())
             if hasattr(self, "pipe") and self.pipe:
                 print("ERRORS:")
                 print(self.pipe.getvalue().rstrip())
