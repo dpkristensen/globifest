@@ -62,6 +62,7 @@ class ManifestReader:
                 line_count += 1
                 line_info = LineInfo.new(manifest, line_count, line_text.lstrip().rstrip())
                 self.parser.parse(line_info)
+            self.parser.parse_end()
         except EnvironmentError:
             self.error("read from")
 

@@ -164,6 +164,14 @@ class ManifestParser(StateMachine.Base):
             self._debug("ENTRY: {}".format(line))
             self._parse_entry(line)
 
+    def parse_end(self):
+        state = self._get_state()
+        if state != STATE.PARSE:
+            if (state == STATE.COND_IF) or (state == STATE.COND_ELIF):
+                Log.E("Unterminated conditional block")
+            else:
+                Log.E("Unknown error")
+
     def _condition_proc_block_change(self):
         """
             When the condition is met, change it to satisfied

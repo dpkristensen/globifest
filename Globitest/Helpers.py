@@ -54,6 +54,9 @@ class DummyManifestParser:
     def parse(self, info):
         self.lines.append(info)
 
+    def parse_end(self):
+        pass
+
 new_parser = DummyManifestParser
 
 def new_file(*args):
