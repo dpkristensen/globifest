@@ -38,13 +38,15 @@ import time
 import types
 import unittest
 
-import GlobifestLib
-from GlobifestLib import *
+from GlobifestLib import Log
 
 import Globitest
 from Globitest import *
 
 def get_tests():
+    """
+        Return a list of test classes in the Globitest namespace
+    """
     class_list = []
     for module_name in dir(Globitest):
         module_inst = eval("Globitest.{}".format(module_name))
@@ -68,20 +70,27 @@ def get_tests():
                     continue
 
                 class_list.append(dict(
-                    desc = "{}.{}".format(class_name, func_name),
-                    cname = "Globitest.{}.{}".format(module_name, class_name),
-                    fname = func_name
+                    desc="{}.{}".format(class_name, func_name),
+                    cname="Globitest.{}.{}".format(module_name, class_name),
+                    fname=func_name
                     ))
     return class_list
 
 
 def get_test_result(passed):
+    """Convert the test result to a string"""
     if passed:
         return "PASSED"
     else:
         return "FAILED"
 
 class CustomTestResult(unittest.TestResult):
+    """
+        Custom Test Result
+
+        This class overrides unittest default output style to enhance traceability of the failure,
+        specifically with regard to preserving failure output in relation to the test name.
+    """
 
     def __init__(self, stream, descriptions, verbosity):
         super_class = super(CustomTestResult, self)
@@ -94,6 +103,7 @@ class CustomTestResult(unittest.TestResult):
         self.last_test_class = ""
 
     def handle_result(self, test, passed):
+        """Format the result string"""
         test_name = "{}.{}".format(type(test).__name__, test._testMethodName)
         if passed:
             self.tests_passed += 1
@@ -103,29 +113,32 @@ class CustomTestResult(unittest.TestResult):
         print("{} | {}".format(get_test_result(passed), test._testMethodName))
 
     def print_double_separator(self, test_class):
+        """Print a double-line separator for the given test class"""
         print("========" + "=" * (len(test_class) + 1))
 
     def print_last_test_name(self):
-        if "" != self.last_test_class:
+        """Print the last test name and how long it took"""
+        if self.last_test_class != "":
             self.print_double_separator(self.last_test_class)
             stop_time = time.perf_counter() - self.test_start_time
             print("  END  | {} ({:0.3f}s)".format(self.last_test_class, stop_time))
 
     def addError(self, test, err):
+        """Print error text"""
         print(self._exc_info_to_string(err, test))
         self.handle_result(test, False)
 
     def addFailure(self, test, err):
+        """Add a test failure"""
         print(self._exc_info_to_string(err, test))
         self.handle_result(test, False)
 
     def addSuccess(self, test):
+        """Explicitly report success"""
         self.handle_result(test, True)
 
-    def addSubTest(self, test, subtest, err):
-        print("{}")
-
     def startTest(self, test):
+        """Start the test and print header information"""
         self.testsRun += 1
         test_class = type(test).__name__
         if self.last_test_class != test_class:
@@ -138,9 +151,11 @@ class CustomTestResult(unittest.TestResult):
         print("RUN    | {}".format(test._testMethodName))
 
     def stopTestRun(self):
+        """Override normal output and do nothing"""
         pass
 
     def printErrors(self):
+        """Print test summary with aggregate error information"""
         pct = 0
         if self.testsRun > 0:
             pct = int(self.tests_passed * 100 / self.testsRun)
@@ -148,12 +163,12 @@ class CustomTestResult(unittest.TestResult):
         print("\nSUMMARY:")
         print(
             "{}/{}/{} {}% (pass/fail/total)".format(
-            self.tests_passed,
-            self.tests_failed,
-            self.testsRun,
-            pct
+                self.tests_passed,
+                self.tests_failed,
+                self.testsRun,
+                pct
             ))
-        if len(self.failed_tests) != 0:
+        if self.failed_tests:
             print("\nERRORS:")
             for err in self.failed_tests:
                 print(err)
