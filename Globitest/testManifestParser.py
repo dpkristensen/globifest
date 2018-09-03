@@ -113,11 +113,11 @@ class TestManifestParser(unittest.TestCase):
         expected.sources = ["abc_module.c"]
         self.verify_manifest(expected)
 
-    def test_conditional_compact(self):
+    def test_conditional_compact1(self):
         for data in [
-            ("1", "a"),
-            ("2", "b"),
-            ("3", "c")
+            ("1", ["a"]),
+            ("2", ["b"]),
+            ("3", ["c"])
             ]:
             self.trace_msg = "sel = " + data[0]
             self.create_parser(Util.Container(sel = data[0]))
@@ -129,15 +129,37 @@ class TestManifestParser(unittest.TestCase):
                 )
 
             expected = create_empty_manifest_container()
-            expected.sources = [data[1]]
+            expected.sources = data[1]
+            self.verify_manifest(expected)
+
+    def test_conditional_compact2(self):
+        for data in [
+            ("1", ["a1","a2"]),
+            ("2", ["b1","b2"]),
+            ("3", ["c1","c2"])
+            ]:
+            self.trace_msg = "sel = " + data[0]
+            self.create_parser(Util.Container(sel = data[0]))
+            self.parse_lines(
+                ":sources",
+                ":if(sel=1){a1",
+                "    a2",
+                "    :elif(sel=2) b1",
+                "    b2",
+                "    :else c1",
+                "    c2}"
+                )
+
+            expected = create_empty_manifest_container()
+            expected.sources = data[1]
             self.verify_manifest(expected)
 
     def test_conditional_long(self):
         for data in [
-            ("1", "a"),
-            ("2", "b"),
-            ("3", "c"),
-            ("4", "d")
+            ("1", ["a"]),
+            ("2", ["b"]),
+            ("3", ["c"]),
+            ("4", ["d"])
             ]:
             self.trace_msg = "sel = " + data[0]
             self.create_parser(Util.Container(sel = data[0]))
@@ -165,7 +187,7 @@ class TestManifestParser(unittest.TestCase):
                 )
 
             expected = create_empty_manifest_container()
-            expected.sources = [data[1]]
+            expected.sources = data[1]
             self.verify_manifest(expected)
 
     def test_empty_file(self):

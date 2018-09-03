@@ -141,7 +141,7 @@ class ManifestParser(StateMachine.Base):
         """
         self.line_info = line_info
         line = line_info.get_text()
-        Log.D(line)
+        self._debug("PARSE: {}".format(line))
 
         if hasattr(self, "cond_parser"):
             # If parsing a conditional, pass the line to the parser
@@ -167,7 +167,7 @@ class ManifestParser(StateMachine.Base):
     def parse_end(self):
         state = self._get_state()
         if state != STATE.PARSE:
-            if (state == STATE.COND_IF) or (state == STATE.COND_ELIF):
+            if state in [STATE.COND_IF, STATE.COND_ELIF]:
                 self.log_error("Unterminated conditional block")
             else:
                 self.log_error("Unknown error")
@@ -217,9 +217,10 @@ class ManifestParser(StateMachine.Base):
             Start an else block in a conditional statement
         """
         if not hasattr(self, "cond_subparse_state"):
-            self.log_error("elif must be inside a condition block")
+            self.log_error("else must be inside a condition block")
+
         self._condition_proc_block_change()
-        if self.cond_subparse_state != COND_SUBPARSE_STATE.SATISFIED:
+        if self.cond_subparse_state._get_state() != COND_SUBPARSE_STATE.SATISFIED:
             # If the condition has not been satisfied yet, apply these entries
             self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
             self._parse_entry(text)
@@ -232,11 +233,9 @@ class ManifestParser(StateMachine.Base):
 
         if m.is_fullmatch(self.condition_if_re):
             self._debug("IF: {}".format(text))
-            self.last_if_type = "if"
             self._condition_start_if(m[1].lstrip())
         elif m.is_fullmatch(self.condition_elif_re):
             self._debug("ELIF: {}".format(text))
-            self.last_if_type = "elif"
             self._condition_start_elif(m[1].lstrip())
         elif m.is_fullmatch(self.condition_else_re):
             self._debug("ELSE: {}".format(text))
@@ -277,7 +276,7 @@ class ManifestParser(StateMachine.Base):
         # If this is parsed in a condition context, skip over unmatching entries
         if hasattr(self, "cond_subparse_state"):
             if self.cond_subparse_state._get_state() != COND_SUBPARSE_STATE.MET:
-                self._debug("SKIP_ENTRY")
+                self._debug("SKIP_ENTRY: {}".format(entry))
                 return
 
         self._debug("ADD_ENTRY")
@@ -286,6 +285,10 @@ class ManifestParser(StateMachine.Base):
     def _proc_condition_text(self):
         """
             Process new condition text
+
+            * For :if, this processes the () expression and aggregates lines inside the {} for sub-parsing
+            * For :elif, this processes the () expression
+            * This is not used for :else, since there is no () expression
         """
         status = self.cond_parser.get_status()
 
@@ -310,29 +313,40 @@ class ManifestParser(StateMachine.Base):
 
             remaining_text = self.cond_parser.get_remaining_text()
 
-            self.cond_state._transition(COND_STATE.BRACE)
-            flags = PARSERFLAGS.MULTI_LEVEL
-            if self.get_debug_mode():
-                flags |= PARSERFLAGS.DEBUG
-            self.cond_parser = BoundedStatefulParser.new(remaining_text, "{", "}", flags)
-            self.cond_parser.link_debug_log(self)
+            if self._get_state() == STATE.COND_IF:
+                self.cond_state._transition(COND_STATE.BRACE)
+                flags = PARSERFLAGS.MULTI_LEVEL
+                if self.get_debug_mode():
+                    flags |= PARSERFLAGS.DEBUG
+                self.cond_parser = BoundedStatefulParser.new(remaining_text, "{", "}", flags)
+                self.cond_parser.link_debug_log(self)
 
-            status = self.cond_parser.get_status()
-            if status == StatefulParser.PARSE_STATUS.FINISHED:
-                # If braces are on one line, process them immediately
+                status = self.cond_parser.get_status()
+                if status == StatefulParser.PARSE_STATUS.FINISHED:
+                    # If braces are on one line, process them immediately
 
-                # Replace the original line with just the part inside the braces
-                new_text = self.cond_parser.get_parsed_text()
-                self.line_info.set_text(new_text)
+                    # Replace the original line with just the part inside the braces
+                    new_text = self.cond_parser.get_parsed_text()
+                    self.line_info.set_text(new_text)
 
-                self._proc_condition_text()
-            elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
-                # Replace the original line with just the part inside the braces
-                new_text = self.cond_parser.get_parsed_text()
-                self.line_info.set_text(new_text)
-                if hasattr(self, "cond_block"):
-                    self.cond_block.append(self.line_info)
+                    self._proc_condition_text()
+                elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
+                    # Replace the original line with just the part inside the braces
+                    new_text = self.cond_parser.get_parsed_text()
+                    self.line_info.set_text(new_text)
+                    if hasattr(self, "cond_block"):
+                        self.cond_block.append(self.line_info)
+            elif self._get_state() == STATE.COND_ELIF:
+                # No braces, just go on to parse the part after the parentheses
+                self._transition(STATE.PARSE)
+                del self.cond_parser
+                if self.last_if_expr_result:
+                    self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
+                self._parse_entry(remaining_text.lstrip());
         elif parse_state == COND_STATE.BRACE:
+            # Braces are only used for if statement
+            if self._get_state() != STATE.COND_IF:
+                self.log_error("Invalid state")
             self.line_info.set_text(self.cond_parser.get_last_parsed_text())
             self.cond_block.append(self.line_info)
 
