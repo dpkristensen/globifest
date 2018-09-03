@@ -53,7 +53,8 @@ class Manifest:
 
     def add_entry(self, typename, entry):
         """Add an entry of the given type"""
-        self.out[typename] += [entry]
+        if entry:
+            self.out[typename] += [entry]
 
     def add_type(self, typename):
         """Add a table to the output for the given type"""

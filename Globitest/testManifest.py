@@ -50,6 +50,8 @@ class TestManifest(unittest.TestCase):
 
         manifest.add_entry("type_c", "c1")
 
+        manifest.add_entry("type_c", "") # empty line ignored
+
         out = manifest.get_output()
         self.assertEquals(out, dict(
             type_a = ["a1", "a2"],
