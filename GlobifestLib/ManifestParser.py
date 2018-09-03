@@ -328,7 +328,7 @@ class ManifestParser(StateMachine.Base):
                 flags = PARSERFLAGS.MULTI_LEVEL
                 if self.get_debug_mode():
                     flags |= PARSERFLAGS.DEBUG
-                self.cond_parser = BoundedStatefulParser.new(remaining_text, "{", "}", flags)
+                self.cond_parser = BoundedStatefulParser.new(remaining_text.lstrip(), "{", "}", flags)
                 self.cond_parser.link_debug_log(self)
 
                 status = self.cond_parser.get_status()

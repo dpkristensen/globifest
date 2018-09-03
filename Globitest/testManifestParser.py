@@ -142,7 +142,7 @@ class TestManifestParser(unittest.TestCase):
             self.create_parser(Util.Container(sel = data[0]))
             self.parse_lines(
                 ":sources",
-                ":if(sel=1){a1",
+                ":if(sel=1) {a1",
                 "    a2",
                 "    :elif(sel=2) b1",
                 "    b2",
