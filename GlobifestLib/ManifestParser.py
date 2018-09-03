@@ -168,9 +168,9 @@ class ManifestParser(StateMachine.Base):
         state = self._get_state()
         if state != STATE.PARSE:
             if (state == STATE.COND_IF) or (state == STATE.COND_ELIF):
-                Log.E("Unterminated conditional block")
+                self.log_error("Unterminated conditional block")
             else:
-                Log.E("Unknown error")
+                self.log_error("Unknown error")
 
     def _condition_proc_block_change(self):
         """
@@ -202,10 +202,10 @@ class ManifestParser(StateMachine.Base):
 
     def _condition_start_elif(self, text):
         """
-            Start a conditional elif statement
+            Start an elif block in a conditional statement
         """
         if not hasattr(self, "cond_subparse_state"):
-            Log.E("elif must be inside a condition block")
+            self.log_error("elif must be inside a condition block")
 
         self._transition(STATE.COND_ELIF)
         self.cond_state = StateMachine.Owned(self, "cond_state")
