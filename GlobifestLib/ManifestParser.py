@@ -102,16 +102,35 @@ class Context(object):
             self.cond_default_found = False
             self.line_info = line_info
 
+        # Save the label this context starts with, for conditionals
+        self.init_label = self.label
+
+        # Link to the previous context for evaluation
+        self.prev_context = prev_context
+
         self.context_parser = context_parser
         if context_parser:
             self.update_parser()
 
+    def is_condition_met(self):
+        """Return True if this context and all parent context conditions are met"""
+        ctx = self
+        while ctx and (ctx.cond_state._get_state() == COND_STATE.MET):
+            ctx = ctx.prev_context
+
+        return ctx is None
+
     def process_conditional_block_change(self):
         """
-            When the condition is met, change it to satisfied
+            On conditional block change:
+            * When the condition is met, change it to satisfied
+            * Revert to the original label this context was started with
         """
         if self.cond_state._get_state() == COND_STATE.MET:
             self.cond_state._transition(COND_STATE.SATISFIED)
+        if self.label != self.init_label:
+            self.label = self.init_label
+            self.manifest_parser._debug("LABEL: {}".format(self.init_label))
 
     def process_conditional_default(self):
         """
@@ -204,9 +223,6 @@ class ManifestParser(Log.Debuggable):
         with Log.CaptureStdout(self, "LABEL_RE:"):
             self.label_re = re.compile("([a-z_]+)", regex_flags)
 
-        # Other context variables
-        self.label = None
-
         for label in self.get_labels():
             self.manifest.add_type(label)
 
@@ -252,7 +268,6 @@ class ManifestParser(Log.Debuggable):
             self._parse_directive(line[1:])
         else:
             # Entry
-            self._debug("ENTRY: {}".format(line))
             self._parse_entry(line)
 
     def parse_end(self):
@@ -375,11 +390,11 @@ class ManifestParser(Log.Debuggable):
                     self.log_error("'{}' is not a directory".format(entry))
 
         # If this is parsed in a condition context, skip over unmatching entries
-        if cur_context.cond_state._get_state() != COND_STATE.MET:
+        if not cur_context.is_condition_met():
             self._debug("SKIP_ENTRY: {}".format(entry))
             return
 
-        self._debug("ADD_ENTRY")
+        self._debug("ADD_ENTRY: {}".format(entry))
         self.manifest.add_entry(cur_context.label, entry)
 
 new = ManifestParser

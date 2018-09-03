@@ -236,6 +236,80 @@ class TestManifestParser(unittest.TestCase):
             expected.sources = data[1]
             self.verify_manifest(expected)
 
+    def test_conditional_nested_complex(self):
+        for data in [
+            ("1","1", ["a_top","a1"], ["top_hdr","a1_hdr"]),
+            ("1","2", ["a_top","a2"], ["top_hdr","a2_hdr"]),
+            ("1","3", ["a_top","a3"], ["top_hdr","a3_hdr"]),
+            ("2","1", ["b_top","b1"], ["top_hdr","b1_hdr"]),
+            ("2","2", ["b_top","b2"], ["top_hdr","b2_hdr"]),
+            ("2","3", ["b_top","b3"], ["top_hdr","b3_hdr"]),
+            ("3","1", ["c_top","c1"], ["top_hdr","c1_hdr"]),
+            ("3","2", ["c_top","c2"], ["top_hdr","c2_hdr"]),
+            ("3","3", ["c_top","c3"], ["top_hdr","c3_hdr"])
+            ]:
+            self.trace_msg = "sel = " + data[0]
+            self.create_parser(Util.Container(
+                x=data[0],
+                y=data[1]
+                ))
+            self.parse_lines(
+                ":pub_includes",
+                "    top_hdr",
+                ":sources",
+                ":if( x=1 )",
+                "    a_top",
+                "    :if( y=1 )",
+                "        a1",
+                "        :pub_includes",
+                "            a1_hdr",
+                "    :elif( y=2 )",
+                "        a2",
+                "        :pub_includes",
+                "            a2_hdr",
+                "    :else",
+                "        a3",
+                "        :pub_includes",
+                "            a3_hdr",
+                "    :end",
+                ":elif( x=2 )",
+                "    b_top",
+                "    :if( y=1 )",
+                "        b1",
+                "        :pub_includes",
+                "            b1_hdr",
+                "    :elif( y=2 )",
+                "        b2",
+                "        :pub_includes",
+                "            b2_hdr",
+                "    :else",
+                "        b3",
+                "        :pub_includes",
+                "            b3_hdr",
+                "    :end",
+                ":else",
+                "    c_top",
+                "    :if( y=1 )",
+                "        c1",
+                "        :pub_includes",
+                "            c1_hdr",
+                "    :elif( y=2 )",
+                "        c2",
+                "        :pub_includes",
+                "            c2_hdr",
+                "    :else",
+                "        c3",
+                "        :pub_includes",
+                "            c3_hdr",
+                "    :end",
+                ":end",
+                )
+
+            expected = create_empty_manifest_container()
+            expected.sources = data[2]
+            expected.pub_includes = data[3]
+            self.verify_manifest(expected)
+
     def test_empty_file(self):
         self.create_parser()
         self.parse_lines("")
