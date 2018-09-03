@@ -107,7 +107,7 @@ class ManifestParser(StateMachine.Base):
         with Log.CaptureStdout(self, "CONDITION_ELIF_RE:"):
             self.condition_elif_re = re.compile("elif(.*)", regex_flags)
         with Log.CaptureStdout(self, "CONDITION_ELSE_RE:"):
-            self.condition_else_re = re.compile("else[ |$](.*)", regex_flags)
+            self.condition_else_re = re.compile("else ?(.*)", regex_flags)
         with Log.CaptureStdout(self, "LABEL_RE:"):
             self.label_re = re.compile("([a-z_]+)", regex_flags)
 
@@ -300,7 +300,17 @@ class ManifestParser(StateMachine.Base):
             self._debug(self.cond_parser.get_debug_log())
             self.log_error("Malformed condition")
         elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
-            self.cond_block.append(self.line_info)
+            # Only add lines when the condition parser has found lbound; this will skip whitespace
+            # and the beginning brace after the expression.
+            line_text = self.line_info.get_text()
+            if hasattr(self, "cond_block"):
+                if (not self.cond_block) and self.cond_parser.has_lbound():
+                    # If the block is empty and the lbound is available, the lbound must be
+                    # removed from the line.
+                    line_text = self.cond_parser.get_last_parsed_text()
+                    self.line_info.set_text(line_text)
+                if line_text:
+                    self.cond_block.append(self.line_info)
             return
 
         parse_state = self.cond_state._get_state()
@@ -331,11 +341,14 @@ class ManifestParser(StateMachine.Base):
 
                     self._proc_condition_text()
                 elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
-                    # Replace the original line with just the part inside the braces
+                    # Replace the original line with just the part outside the parentheses
                     new_text = self.cond_parser.get_parsed_text()
                     self.line_info.set_text(new_text)
                     if hasattr(self, "cond_block"):
-                        self.cond_block.append(self.line_info)
+                        # Clear out lines from multi-line expressions
+                        self.cond_block = list()
+                        if self.line_info.get_text():
+                            self.cond_block.append(self.line_info)
             elif self._get_state() == STATE.COND_ELIF:
                 # No braces, just go on to parse the part after the parentheses
                 self._transition(STATE.PARSE)

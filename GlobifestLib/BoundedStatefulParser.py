@@ -74,6 +74,10 @@ class BoundedStatefulParser(StatefulParser.Base):
         """Returns whether FLAGS.MULTI_LEVEL is set."""
         return self.is_flag_set(StatefulParser.FLAGS.MULTI_LEVEL)
 
+    def has_lbound(self):
+        """Return whether the L bound has been found"""
+        return self._get_state() != BOUNDED_STATE.LBOUND
+
     def on_text(self):
         """Handle text parsed from the caller."""
         if self._get_state() == BOUNDED_STATE.DONE:

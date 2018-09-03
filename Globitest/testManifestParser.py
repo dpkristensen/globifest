@@ -154,7 +154,7 @@ class TestManifestParser(unittest.TestCase):
             expected.sources = data[1]
             self.verify_manifest(expected)
 
-    def test_conditional_long(self):
+    def test_conditional_long1(self):
         for data in [
             ("1", ["a"]),
             ("2", ["b"]),
@@ -183,6 +183,46 @@ class TestManifestParser(unittest.TestCase):
                 "    c",
                 ":else",
                 "    d",
+                "}"
+                )
+
+            expected = create_empty_manifest_container()
+            expected.sources = data[1]
+            self.verify_manifest(expected)
+
+    def test_conditional_long2(self):
+        for data in [
+            ("1", ["a1","a2"]),
+            ("2", ["b1","b2"]),
+            ("3", ["c1","c2"]),
+            ("4", ["d1","d2"])
+            ]:
+            self.trace_msg = "sel = " + data[0]
+            self.create_parser(Util.Container(sel = data[0]))
+            self.parse_lines(
+                ":sources",
+                ":if",
+                "    (",
+                "    sel=1",
+                "    )",
+                "{",
+                "    a1",
+                "    a2",
+                ":elif",
+                "    (",
+                "    sel=2",
+                "    )",
+                "    b1",
+                "    b2",
+                ":elif",
+                "    (",
+                "    sel==3",
+                "    )",
+                "    c1",
+                "    c2",
+                ":else",
+                "    d1",
+                "    d2",
                 "}"
                 )
 
