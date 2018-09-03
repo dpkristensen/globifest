@@ -212,6 +212,18 @@ class ManifestParser(StateMachine.Base):
         self._condition_proc_block_change()
         self._condition_proc_expression(text)
 
+    def _condition_start_else(self, text):
+        """
+            Start an else block in a conditional statement
+        """
+        if not hasattr(self, "cond_subparse_state"):
+            self.log_error("elif must be inside a condition block")
+        self._condition_proc_block_change()
+        if self.cond_subparse_state != COND_SUBPARSE_STATE.SATISFIED:
+            # If the condition has not been satisfied yet, apply these entries
+            self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
+            self._parse_entry(text)
+
     def _parse_directive(self, text):
         """
             Parse directive text
@@ -224,20 +236,11 @@ class ManifestParser(StateMachine.Base):
             self._condition_start_if(m[1].lstrip())
         elif m.is_fullmatch(self.condition_elif_re):
             self._debug("ELIF: {}".format(text))
-            if not hasattr(self, "cond_subparse_state"):
-                Log.E("elif must be inside a condition block")
             self.last_if_type = "elif"
             self._condition_start_elif(m[1].lstrip())
         elif m.is_fullmatch(self.condition_else_re):
             self._debug("ELSE: {}".format(text))
-            if not hasattr(self, "cond_subparse_state"):
-                Log.E("elif must be inside a condition block")
-            self._condition_proc_block_change()
-            if self.cond_subparse_state != COND_SUBPARSE_STATE.SATISFIED:
-                # If the condition has not been satisfied yet, apply these entries
-                self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
-                self._parse_entry(m[1].lstrip())
-        # elif end, reset back to normal processing
+            self._condition_start_else(m[1].lstrip())
         elif m.is_fullmatch(self.label_re):
             self._debug("LABEL: {}".format(text))
             # Label directive (:x)
