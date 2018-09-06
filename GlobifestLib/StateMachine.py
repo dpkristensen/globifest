@@ -38,15 +38,15 @@ class StateMachine(Log.Debuggable):
         Implements shared state machine functionality
     """
 
-    def __init__(self, debug_mode=False):
+    def __init__(self, debug_mode=False, init_state=0):
         """
             Initialize the class
         """
         Log.Debuggable.__init__(self, debug_mode)
 
         self._sm_base = Util.Container(
-            state=0,
-            new_state=0
+            state=init_state,
+            new_state=init_state
             )
         self.title = "state"
 
@@ -54,8 +54,8 @@ class StateMachine(Log.Debuggable):
         if self._sm_base.new_state != self._sm_base.state:
             self._sm_base.state = self._sm_base.new_state
             return True
-        else:
-            return False
+
+        return False
 
     def _get_state(self):
         return self._sm_base.state
@@ -77,11 +77,11 @@ class StateMachine(Log.Debuggable):
 
 Base = StateMachine
 
-def Owned(parent, title):
+def Owned(parent, title, init_state=0):
     """
     Factory method to create an owned state machine, which links to the parent's debug log.
     """
-    sm = StateMachine()
+    sm = StateMachine(init_state=init_state)
     sm.link_debug_log(parent)
     sm._set_title(title)
     return sm
