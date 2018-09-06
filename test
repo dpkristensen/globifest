@@ -202,6 +202,7 @@ runner = unittest.TextTestRunner()
 runner.resultclass = CustomTestResult
 
 # Very detailed errors
-Log.Logger.set_level(Log.LEVEL.EXTREME)
+# Set to Log.LEVEL.EXTREME for even more info
+Log.Logger.set_level(Log.LEVEL.DEBUG)
 
 runner.run(suite)
