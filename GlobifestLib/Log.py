@@ -155,7 +155,7 @@ class CaptureStdout(object):
         return self
 
     def __exit__(self, var_type, var_value, traceback):
-        if self.stream:
+        if self.stream.getvalue():
             # Only print if something was captured
             self.debuggable._debug(self.header)
             for line in self.stream.getvalue().splitlines():
