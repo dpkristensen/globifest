@@ -62,34 +62,125 @@ RAW_LABELS = [
     "pub_defines"
     ]
 
-STATE = Util.create_enum(
-    "PARSE",
-    "COND_IF",
-    "COND_ELIF"
-    )
-
 COND_STATE = Util.create_enum(
-    "PAREN",
-    "BRACE",
-    )
-
-COND_SUBPARSE_STATE = Util.create_enum(
     "NOT_MET",
     "MET",
     "SATISFIED"
     )
 
-class ManifestParser(StateMachine.Base):
+
+class Context(object):
+    """
+        Encapsulates contextual information for a nesting level
+    """
+
+    def __init__(self, manifest_parser, prev_context=None, line_info=None, context_parser=None):
+        """Initialize the top (file-scope) nesting level"""
+
+        self.manifest_parser = manifest_parser
+
+        if prev_context is None:
+            self.label = None
+            self.level = 0
+            # Top state should never change
+            self.cond_state = StateMachine.Owned(
+                manifest_parser,
+                "***TOP_COND_STATE***",
+                init_state=COND_STATE.MET
+                )
+            self.cond_default_found = False
+            self.line_info = "<invalid>"
+        else:
+            # Derive context from previous
+            self.label = prev_context.label
+            self.level = prev_context.level + 1
+            self.cond_state = StateMachine.Owned(
+                manifest_parser,
+                "L{} COND_STATE".format(self.level),
+                COND_STATE.NOT_MET
+                )
+            self.cond_default_found = False
+            self.line_info = line_info
+
+        self.context_parser = context_parser
+        if context_parser:
+            self.update_parser()
+
+    def process_conditional_block_change(self):
+        """
+            When the condition is met, change it to satisfied
+        """
+        if self.cond_state._get_state() == COND_STATE.MET:
+            self.cond_state._transition(COND_STATE.SATISFIED)
+
+    def process_conditional_default(self):
+        """
+            If no conditions have been met, mark it as met now
+        """
+        if self.cond_state._get_state() == COND_STATE.NOT_MET:
+            self.cond_state._transition(COND_STATE.MET)
+
+    def process_line(self, text):
+        """
+            Process the text in context
+
+            @note Returns True if the line is parsed as part of the context, False if the parser
+                should continue parsing it.
+        """
+        if self.context_parser is None:
+            return False
+
+        self.context_parser.parse(text)
+        self.update_parser()
+
+        return True
+
+    def update_parser(self):
+        """Check the parser for updates"""
+
+        # parse until finished or error
+        status = self.context_parser.get_status()
+        if status == StatefulParser.PARSE_STATUS.ERROR:
+            self.manifest_parser._debug(self.context_parser.get_debug_log())
+            self.manifest_parser.log_error("Malformed condition")
+        elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
+            return
+
+        # Condition expression is completely parsed
+        expr = self.context_parser.get_parsed_text()
+
+        result = self.manifest_parser.configset.evaluate(expr)
+        self.manifest_parser._debug("COND EXPR: '{}' = {}".format(expr, result))
+
+        if self.context_parser.get_remaining_text():
+            self.manifest_parser.log_error(
+                "Unexpected text after expression: '{}'".format(
+                    self.context_parser.get_remaining_text()
+                    )
+                )
+
+        # Done parsing the expression, so delete the parser
+        self.context_parser = None
+
+        if result and (self.cond_state._get_state() == COND_STATE.NOT_MET):
+            self.cond_state._transition(COND_STATE.MET)
+
+class ManifestParser(Log.Debuggable):
     """
         Encapsulates logic to parse a manifest
     """
 
     def __init__(self, manifest, configset, debug_mode=False, validate_files=True):
-        StateMachine.Base.__init__(self, debug_mode=debug_mode)
+        Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
         self.configset = configset
         self.manifest = manifest
         self.validate_files = validate_files
+        self.line_info = None
+
+        # Always has a context
+        top_context = Context(manifest_parser=self)
+        self.context_stack = [top_context]
 
         regex_flags = 0
         if Log.Logger.has_level(Log.LEVEL.EXTREME):
@@ -107,7 +198,9 @@ class ManifestParser(StateMachine.Base):
         with Log.CaptureStdout(self, "CONDITION_ELIF_RE:"):
             self.condition_elif_re = re.compile("elif(.*)", regex_flags)
         with Log.CaptureStdout(self, "CONDITION_ELSE_RE:"):
-            self.condition_else_re = re.compile("else ?(.*)", regex_flags)
+            self.condition_else_re = re.compile("else$", regex_flags)
+        with Log.CaptureStdout(self, "CONDITION_END_RE:"):
+            self.condition_end_re = re.compile("end$", regex_flags)
         with Log.CaptureStdout(self, "LABEL_RE:"):
             self.label_re = re.compile("([a-z_]+)", regex_flags)
 
@@ -143,10 +236,8 @@ class ManifestParser(StateMachine.Base):
         line = line_info.get_text()
         self._debug("PARSE: {}".format(line))
 
-        if hasattr(self, "cond_parser"):
-            # If parsing a conditional, pass the line to the parser
-            self.cond_parser.parse(line)
-            self._proc_condition_text()
+        cur_context = self.context_stack[-1]
+        if cur_context.process_line(line):
             return
 
         m = Matcher.new(line)
@@ -165,65 +256,70 @@ class ManifestParser(StateMachine.Base):
             self._parse_entry(line)
 
     def parse_end(self):
-        state = self._get_state()
-        if state != STATE.PARSE:
-            if state in [STATE.COND_IF, STATE.COND_ELIF]:
-                self.log_error("Unterminated conditional block")
-            else:
-                self.log_error("Unknown error")
+        if not self.context_stack:
+            self.log_error("Invalid post-parsing state")
+        elif len(self.context_stack) != 1:
+            self.log_error(
+                "Unterminated block started at {}".format(self.context_stack[-1].line_info)
+                )
 
-    def _condition_proc_block_change(self):
+    def _condition_end(self):
         """
-            When the condition is met, change it to satisfied
+            End a conditional statement
         """
-        if self.cond_subparse_state._get_state() == COND_SUBPARSE_STATE.MET:
-            self.cond_subparse_state._transition(COND_SUBPARSE_STATE.SATISFIED)
+        if (not self.context_stack) or (self.context_stack[-1].level == 0):
+            self.log_error("end must be at the end of a condition block")
 
-    def _condition_proc_expression(self, text):
-        """
-            Start a conditional statement
-        """
-        flags = PARSERFLAGS.MULTI_LEVEL
-        if self.get_debug_mode():
-            flags |= PARSERFLAGS.DEBUG
-        self.cond_parser = BoundedStatefulParser.new(text, "(", ")", flags)
-        self.cond_parser.link_debug_log(self)
-
-        self._proc_condition_text()
+        self.context_stack.pop(-1)
 
     def _condition_start_if(self, text):
         """
-            Start a conditional if statement
+            Start a conditional statement
+
+            Push a new context onto the stack and start looking for an expression
         """
-        self._transition(STATE.COND_IF)
-        self.cond_state = StateMachine.Owned(self, "cond_state")
-        self.cond_block = list()
-        self._condition_proc_expression(text)
+        new_context = Context(
+                manifest_parser=self,
+                prev_context=self.context_stack[-1],
+                line_info=self.line_info,
+                context_parser=self._create_paren_parser(text)
+            )
+        self.context_stack.append(new_context)
 
     def _condition_start_elif(self, text):
         """
             Start an elif block in a conditional statement
         """
-        if not hasattr(self, "cond_subparse_state"):
+        if (not self.context_stack) or (self.context_stack[-1].level == 0):
             self.log_error("elif must be inside a condition block")
 
-        self._transition(STATE.COND_ELIF)
-        self.cond_state = StateMachine.Owned(self, "cond_state")
-        self._condition_proc_block_change()
-        self._condition_proc_expression(text)
+        cur_context = self.context_stack[-1]
+        cur_context.process_conditional_block_change()
+        if cur_context.context_parser is not None:
+            self.log_error("Expected end of expression")
+        
+        cur_context.context_parser = self._create_paren_parser(text)
+        cur_context.update_parser()
 
-    def _condition_start_else(self, text):
+    def _condition_start_else(self):
         """
             Start an else block in a conditional statement
         """
-        if not hasattr(self, "cond_subparse_state"):
+        if (not self.context_stack) or (self.context_stack[-1].level == 0):
             self.log_error("else must be inside a condition block")
 
-        self._condition_proc_block_change()
-        if self.cond_subparse_state._get_state() != COND_SUBPARSE_STATE.SATISFIED:
-            # If the condition has not been satisfied yet, apply these entries
-            self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
-            self._parse_entry(text)
+        cur_context = self.context_stack[-1]
+        cur_context.process_conditional_block_change()
+        cur_context.process_conditional_default()
+
+    def _create_paren_parser(self, text):
+        """Return a parser for finding a bounded set of parentheses"""
+        flags = PARSERFLAGS.MULTI_LEVEL
+        if self.get_debug_mode():
+            flags |= PARSERFLAGS.DEBUG
+        paren_parser = BoundedStatefulParser.new(text, "(", ")", flags)
+        paren_parser.link_debug_log(self)
+        return paren_parser
 
     def _parse_directive(self, text):
         """
@@ -232,16 +328,19 @@ class ManifestParser(StateMachine.Base):
         m = Matcher.new(text.lower())
 
         if m.is_fullmatch(self.condition_if_re):
-            self._debug("IF: {}".format(text))
+            self._debug("IF: {}".format(m[1]))
             self._condition_start_if(m[1].lstrip())
         elif m.is_fullmatch(self.condition_elif_re):
-            self._debug("ELIF: {}".format(text))
+            self._debug("ELIF: {}".format(m[1]))
             self._condition_start_elif(m[1].lstrip())
         elif m.is_fullmatch(self.condition_else_re):
-            self._debug("ELSE: {}".format(text))
-            self._condition_start_else(m[1].lstrip())
+            self._debug("ELSE")
+            self._condition_start_else()
+        elif m.is_fullmatch(self.condition_end_re):
+            self._debug("END")
+            self._condition_end()
         elif m.is_fullmatch(self.label_re):
-            self._debug("LABEL: {}".format(text))
+            self._debug("LABEL: {}".format(m[1]))
             # Label directive (:x)
             self._parse_directive_label(m[1])
         elif not m.found:
@@ -251,161 +350,36 @@ class ManifestParser(StateMachine.Base):
         """
             Parses a label directive from a package
         """
+        cur_context = self.context_stack[-1]
         if label not in self.get_labels():
             self.log_error("Invalid label name '{}'".format(label))
         else:
-            self.label = label
+            cur_context.label = label
 
     def _parse_entry(self, entry):
         """
             Parse entry
         """
-        if not self.label:
+        cur_context = self.context_stack[-1]
+        if not cur_context.label:
             self.log_error("Missing label for entry {}".format(entry))
 
         if self.validate_files:
-            if self.label in FILE_LABELS:
+            if self.cur_context.label in FILE_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_file():
                     self.log_error("'{}' is not a file".format(entry))
-            elif self.label in PATH_LABELS:
+            elif self.cur_context.label in PATH_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_dir():
                     self.log_error("'{}' is not a directory".format(entry))
 
         # If this is parsed in a condition context, skip over unmatching entries
-        if hasattr(self, "cond_subparse_state"):
-            if self.cond_subparse_state._get_state() != COND_SUBPARSE_STATE.MET:
-                self._debug("SKIP_ENTRY: {}".format(entry))
-                return
-
-        self._debug("ADD_ENTRY")
-        self.manifest.add_entry(self.label, entry)
-
-    def _proc_condition_text(self):
-        """
-            Process new condition text
-
-            * For :if, this processes the () expression and aggregates lines inside the {} for sub-parsing
-            * For :elif, this processes the () expression
-            * This is not used for :else, since there is no () expression
-        """
-        status = self.cond_parser.get_status()
-
-        if self._get_state() not in [STATE.COND_IF, STATE.COND_ELIF]:
-            self.log_error("Invalid state")
-
-        # parse until finished or error
-        if status == StatefulParser.PARSE_STATUS.ERROR:
-            self._debug(self.cond_parser.get_debug_log())
-            self.log_error("Malformed condition")
-        elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
-            # Only add lines when the condition parser has found lbound; this will skip whitespace
-            # and the beginning brace after the expression.
-            line_text = self.line_info.get_text()
-            if hasattr(self, "cond_block"):
-                if (not self.cond_block) and self.cond_parser.has_lbound():
-                    # If the block is empty and the lbound is available, the lbound must be
-                    # removed from the line.
-                    line_text = self.cond_parser.get_last_parsed_text()
-                    self.line_info.set_text(line_text)
-                if line_text:
-                    self.cond_block.append(self.line_info)
+        if cur_context.cond_state._get_state() != COND_STATE.MET:
+            self._debug("SKIP_ENTRY: {}".format(entry))
             return
 
-        parse_state = self.cond_state._get_state()
-        if parse_state == COND_STATE.PAREN:
-            # Condition expression is completely parsed
-            expr = self.cond_parser.get_parsed_text()
-
-            self.last_if_expr_result = self.configset.evaluate(expr)
-            self._debug("COND EXPR: '{}' = {}".format(expr, self.last_if_expr_result))
-
-            remaining_text = self.cond_parser.get_remaining_text()
-
-            if self._get_state() == STATE.COND_IF:
-                self.cond_state._transition(COND_STATE.BRACE)
-                flags = PARSERFLAGS.MULTI_LEVEL
-                if self.get_debug_mode():
-                    flags |= PARSERFLAGS.DEBUG
-                self.cond_parser = BoundedStatefulParser.new(remaining_text.lstrip(), "{", "}", flags)
-                self.cond_parser.link_debug_log(self)
-
-                status = self.cond_parser.get_status()
-                if status == StatefulParser.PARSE_STATUS.FINISHED:
-                    # If braces are on one line, process them immediately
-
-                    # Replace the original line with just the part inside the braces
-                    new_text = self.cond_parser.get_parsed_text()
-                    self.line_info.set_text(new_text)
-
-                    self._proc_condition_text()
-                elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
-                    # Replace the original line with just the part outside the parentheses
-                    new_text = self.cond_parser.get_parsed_text()
-                    self.line_info.set_text(new_text)
-                    if hasattr(self, "cond_block"):
-                        # Clear out lines from multi-line expressions
-                        self.cond_block = list()
-                        if self.line_info.get_text():
-                            self.cond_block.append(self.line_info)
-            elif self._get_state() == STATE.COND_ELIF:
-                # No braces, just go on to parse the part after the parentheses
-                self._transition(STATE.PARSE)
-                del self.cond_parser
-                if self.last_if_expr_result:
-                    self.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
-                self._parse_entry(remaining_text.lstrip());
-        elif parse_state == COND_STATE.BRACE:
-            # Braces are only used for if statement
-            if self._get_state() != STATE.COND_IF:
-                self.log_error("Invalid state")
-            self.line_info.set_text(self.cond_parser.get_last_parsed_text())
-            self.cond_block.append(self.line_info)
-
-            if self.cond_parser.get_remaining_text() != "":
-                self.log_error(
-                    "Unexpected text after condition block: {}".format(
-                        self.cond_parser.get_remaining_text()
-                        )
-                    )
-            self._transition(STATE.PARSE)
-            del self.cond_parser
-
-            # Create a new parser to parse the condition context
-            block_parser = new(
-                manifest=self.manifest,
-                configset=self.configset,
-                debug_mode=self.get_debug_mode(),
-                validate_files=self.validate_files
-                )
-            # Set a few additional states for the new parser
-            block_parser.label = self.label
-            block_parser.cond_subparse_state = StateMachine.Owned(self, "cond_subparse_state")
-            if self.last_if_expr_result:
-                block_parser.cond_subparse_state._transition(COND_SUBPARSE_STATE.MET)
-
-            self._debug("COND BLOCK:")
-            for b in self.cond_block:
-                self._debug("  {}".format(b.get_text()))
-
-            block_parser._subparse_condition(self.cond_block, self)
-            del self.cond_block
-            del self.cond_state
-            del self.last_if_expr_result
-            self._transition(STATE.PARSE)
-
-    def _subparse_condition(self, cond_block, parent):
-        """
-            Parse condition context as a sub-parser of another parser
-
-            @note This is run on the subparser object, not the parent parser
-        """
-        self.link_debug_log(parent)
-
-        self._debug("--SUBCONTEXT COND START--")
-        for line_info in cond_block:
-            self.parse(line_info)
-        self._debug("--SUBCONTEXT COND END--")
+        self._debug("ADD_ENTRY")
+        self.manifest.add_entry(cur_context.label, entry)
 
 new = ManifestParser

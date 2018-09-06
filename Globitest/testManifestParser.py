@@ -123,9 +123,13 @@ class TestManifestParser(unittest.TestCase):
             self.create_parser(Util.Container(sel = data[0]))
             self.parse_lines(
                 ":sources",
-                ":if(sel=1){a",
-                "    :elif(sel=2) b",
-                "    :else c}"
+                ":if(sel=1)",
+                "a",
+                ":elif(sel=2)",
+                "b",
+                ":else",
+                "c",
+                ":end"
                 )
 
             expected = create_empty_manifest_container()
@@ -142,12 +146,16 @@ class TestManifestParser(unittest.TestCase):
             self.create_parser(Util.Container(sel = data[0]))
             self.parse_lines(
                 ":sources",
-                ":if(sel=1) {a1",
+                ":if(sel=1)",
+                "    a1",
                 "    a2",
-                "    :elif(sel=2) b1",
+                ":elif(sel=2)",
+                "    b1",
                 "    b2",
-                "    :else c1",
-                "    c2}"
+                ":else",
+                "    c1",
+                "    c2",
+                ":end"
                 )
 
             expected = create_empty_manifest_container()
@@ -169,7 +177,6 @@ class TestManifestParser(unittest.TestCase):
                 "    (",
                 "    sel=1",
                 "    )",
-                "{",
                 "    a",
                 ":elif",
                 "    (",
@@ -183,7 +190,7 @@ class TestManifestParser(unittest.TestCase):
                 "    c",
                 ":else",
                 "    d",
-                "}"
+                ":end"
                 )
 
             expected = create_empty_manifest_container()
@@ -205,7 +212,6 @@ class TestManifestParser(unittest.TestCase):
                 "    (",
                 "    sel=1",
                 "    )",
-                "{",
                 "    a1",
                 "    a2",
                 ":elif",
@@ -223,7 +229,7 @@ class TestManifestParser(unittest.TestCase):
                 ":else",
                 "    d1",
                 "    d2",
-                "}"
+                ":end"
                 )
 
             expected = create_empty_manifest_container()
