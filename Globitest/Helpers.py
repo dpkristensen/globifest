@@ -51,7 +51,7 @@ class DummyManifestParser:
         self.lines = []
         self.manifest = new_manifest()
 
-    def get_manifest(self):
+    def get_target(self):
         """Return the target manifest"""
         return self.manifest
 

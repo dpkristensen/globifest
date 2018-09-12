@@ -31,7 +31,7 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-from GlobifestLib import Manifest, ManifestParser, ManifestReader
+from GlobifestLib import LineReader, Manifest, ManifestParser
 
 def build_manifest(in_fname, configset):
     """
@@ -39,7 +39,7 @@ def build_manifest(in_fname, configset):
     """
     manifest = Manifest.new(in_fname)
     parser = ManifestParser.new(manifest, configset)
-    reader = ManifestReader.new(parser)
+    reader = LineReader.new(parser)
 
     reader.read_file_by_name(in_fname)
     return manifest

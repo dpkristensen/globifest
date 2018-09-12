@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/ManifestReader.py - globifest Manifest Reader
+    globifest/LineReader.py - globifest Line Reader
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -33,9 +33,9 @@
 
 from GlobifestLib import LineInfo, Log
 
-class ManifestReader:
+class LineReader:
     """
-        Reads data from a manifest file
+        Reads lines of data from a file
     """
 
     def __init__(self, parser):
@@ -44,7 +44,7 @@ class ManifestReader:
 
     def error(self, action):
         """Log an error"""
-        Log.E("Could not {} manifest{}".format(action, self.err_file_name))
+        Log.E("Could not {} {}".format(action, self.err_file_name))
 
     def read_file_by_name(self, fname):
         """Read a file by name"""
@@ -56,17 +56,17 @@ class ManifestReader:
             # Catch all external exceptions, so GlobifestException is passed up
             self.error("open")
 
-    def _read_file_obj(self, manifest_file):
+    def _read_file_obj(self, file_obj):
         """Read from a file-like object"""
         line_count = 0
-        manifest = self.parser.get_manifest()
+        target = self.parser.get_target()
         try:
-            for line_text in manifest_file:
+            for line_text in file_obj:
                 line_count += 1
-                line_info = LineInfo.new(manifest, line_count, line_text.lstrip().rstrip())
+                line_info = LineInfo.new(target, line_count, line_text.lstrip().rstrip())
                 self.parser.parse(line_info)
             self.parser.parse_end()
         except EnvironmentError:
             self.error("read from")
 
-new = ManifestReader
+new = LineReader

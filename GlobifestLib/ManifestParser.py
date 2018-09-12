@@ -232,8 +232,8 @@ class ManifestParser(Log.Debuggable):
         """
         return FILE_LABELS + PATH_LABELS + RAW_LABELS
 
-    def get_manifest(self):
-        """Returns the Manifest which is being parsed"""
+    def get_target(self):
+        """Returns the target Manifest which is being parsed"""
         return self.manifest
 
     def log_error(self, err_text):

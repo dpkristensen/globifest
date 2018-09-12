@@ -40,8 +40,8 @@ __all__ = [
     "testBoundedStatefulParser",
     "testConfigSet",
     "testLineInfo",
+    "testLineReader",
     "testManifest",
-    "testManifestReader",
     "testManifestParser",
     "testMatcher",
     "testUtil"

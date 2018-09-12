@@ -35,7 +35,7 @@ import io
 import sys
 import unittest
 
-from GlobifestLib import Log, Manifest, ManifestReader, ManifestParser, Util
+from GlobifestLib import Log, LineReader, Manifest, ManifestParser, Util
 from Globitest import Helpers
 
 def create_empty_manifest_container():
@@ -90,7 +90,7 @@ class TestManifestParser(unittest.TestCase):
         self.parser = ManifestParser.new(self.manifest, self.configs, debug_mode=True, validate_files=False)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser
-        self.reader = ManifestReader.new(self.parser)
+        self.reader = LineReader.new(self.parser)
 
     def parse_lines(self, *args):
         file = Helpers.new_file("\n".join(args))

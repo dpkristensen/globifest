@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testManifestReader.py - Tests for ManifestReader module
+    globifest/globitest/testLineReader.py - Tests for LineReader module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -34,14 +34,14 @@
 import io
 import unittest
 
-from GlobifestLib import ManifestReader
+from GlobifestLib import LineReader
 from Globitest import Helpers
 
-class TestManifestReader(unittest.TestCase):
+class TestLineReader(unittest.TestCase):
 
     def setUp(self):
         self.parser = Helpers.new_parser()
-        self.reader = ManifestReader.new(self.parser)
+        self.reader = LineReader.new(self.parser)
 
     def test_empty_file(self):
         file = Helpers.new_file("")
