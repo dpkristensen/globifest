@@ -380,11 +380,11 @@ class ManifestParser(Log.Debuggable):
             self.log_error("Missing label for entry {}".format(entry))
 
         if self.validate_files:
-            if self.cur_context.label in FILE_LABELS:
+            if cur_context.label in FILE_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_file():
                     self.log_error("'{}' is not a file".format(entry))
-            elif self.cur_context.label in PATH_LABELS:
+            elif cur_context.label in PATH_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_dir():
                     self.log_error("'{}' is not a directory".format(entry))

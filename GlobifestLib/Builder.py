@@ -42,7 +42,7 @@ def build_manifest(in_fname, configset):
     """
 
     # Create object tree
-    manifest = Manifest.new()
+    manifest = Manifest.new(in_fname)
     parser = ManifestParser.new(manifest, configset)
     reader = ManifestReader.new(parser)
 
