@@ -271,6 +271,9 @@ class ManifestParser(Log.Debuggable):
             self._parse_entry(line)
 
     def parse_end(self):
+        """
+            End parsing of the manifest
+        """
         if not self.context_stack:
             self.log_error("Invalid post-parsing state")
         elif len(self.context_stack) != 1:
@@ -294,10 +297,10 @@ class ManifestParser(Log.Debuggable):
             Push a new context onto the stack and start looking for an expression
         """
         new_context = Context(
-                manifest_parser=self,
-                prev_context=self.context_stack[-1],
-                line_info=self.line_info,
-                context_parser=self._create_paren_parser(text)
+            manifest_parser=self,
+            prev_context=self.context_stack[-1],
+            line_info=self.line_info,
+            context_parser=self._create_paren_parser(text)
             )
         self.context_stack.append(new_context)
 
@@ -312,7 +315,7 @@ class ManifestParser(Log.Debuggable):
         cur_context.process_conditional_block_change()
         if cur_context.context_parser is not None:
             self.log_error("Expected end of expression")
-        
+
         cur_context.context_parser = self._create_paren_parser(text)
         cur_context.update_parser()
 

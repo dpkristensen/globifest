@@ -101,6 +101,14 @@ class StatefulParser(StateMachine.Base):
         """Returns whether flag is set"""
         return (self.flags & flag) != 0
 
+    def on_text(self):
+        """
+            Default text handler
+
+            Concrete class should override this to handle parsed text
+        """
+        pass
+
     def parse(self, new_text=""):
         """
             Parse text in a loop

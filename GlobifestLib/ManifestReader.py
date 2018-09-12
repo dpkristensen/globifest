@@ -43,9 +43,11 @@ class ManifestReader:
         self.err_file_name = ""
 
     def error(self, action):
+        """Log an error"""
         Log.E("Could not {} manifest{}".format(action, self.err_file_name))
 
     def read_file_by_name(self, fname):
+        """Read a file by name"""
         self.err_file_name = " '{}'".format(fname)
         try:
             with open(fname, "r") as manifest_file:
@@ -55,6 +57,7 @@ class ManifestReader:
             self.error("open")
 
     def _read_file_obj(self, manifest_file):
+        """Read from a file-like object"""
         line_count = 0
         manifest = self.parser.get_manifest()
         try:

@@ -40,16 +40,26 @@ class TokenBase(object):
         Base class for all logical tokens to be evaluated
     """
 
+    # Super classes must store the value here
+    value = None
+
     def get_name(self):
+        """Return the 'name' of the token (stringized value by default)"""
         return str(self.get_value())
 
     def get_value(self):
+        """Return the value of the token"""
         return self.value
 
     def matches_class(self, base_type):
+        """Return whether this token's class matches the other class type"""
         return isinstance(self, base_type)
 
     def matches_type(self, tok):
+        """
+            Return whether the class of this token's value matches the class of the other token's
+            value.
+        """
         return isinstance(self.get_value(), type(tok.get_value()))
 
 class BoolToken(TokenBase):
@@ -119,15 +129,15 @@ class IdentToken(TokenBase):
             Log.E("{} not defined".format(ident))
 
     def get_name(self):
+        """Override the name to return the identifier"""
         return self.ident
 
-    def get_value(self):
-        return self.value
-
     def matches_class(self, base_type):
+        """Override class matching to use the class of the identifier's value"""
         return issubclass(self.ident_class, base_type)
 
     def matches_type(self, tok):
+        """Override token type matching to use the token type of the identifier's value"""
         tok_type = tok.TOKEN_TYPE
         if tok_type == IdentToken.TOKEN_TYPE:
             tok_type = tok.ident_class.TOKEN_TYPE
@@ -146,11 +156,13 @@ class OpBase(Log.Debuggable):
             self.link_debug_log(parent)
 
     def add_token(self, token):
+        """Add a token to be evaluated by this operation"""
         if not isinstance(token, TokenBase):
             Log.E("{} is not a token".format(str(token)))
         self.tokens.append(token)
 
     def get_error(self):
+        """Return an error, or None if no error is found"""
         if len(self.tokens) > self.NUM_ARGS:
             return "{} expects {} args, found {}".format(
                 self.OP_TEXT,
@@ -161,6 +173,7 @@ class OpBase(Log.Debuggable):
         return None
 
     def is_full(self):
+        """Return whether the operation has all the tokens it needs to be evaluated"""
         return len(self.tokens) == self.NUM_ARGS
 
 class OpUnaryBase(OpBase):
@@ -170,12 +183,24 @@ class OpUnaryBase(OpBase):
 
     NUM_ARGS = 1
 
+    def _eval_get_expr(self):
+        Log.E("Internal error: No default expression for unary operator")
+
     def _eval_check_type(self, base_type):
+        """
+            Implement type checking for a unary operator
+
+            The operator value must match the base token type
+        """
         tok = self.tokens[0]
         if not tok.matches_class(base_type):
             Log.E("{} must be '{}'".format(tok.get_value(), base_type.TOKEN_TYPE))
 
     def _eval_op(self, base_type):
+        """
+            Implement unary operator evaluation
+        """
+        #pylint: disable=W0123
         tok = self.tokens[0]
         arg = tok.get_value()
         self._eval_check_type(base_type)
@@ -199,9 +224,17 @@ class OpBinaryBase(OpBase):
     WORKS_WITH_STRING = False
 
     def evaluate(self):
+        """
+            Return the evaluation of this binary operator
+        """
         return self._eval_op()
 
     def _eval_check_types(self):
+        """
+            Implement type checking for a binary operator
+
+            The operator's tokens must match types
+        """
         tok1 = self.tokens[0]
         tok2 = self.tokens[1]
         if not tok1.matches_type(tok2):
@@ -222,9 +255,16 @@ class OpBinaryBase(OpBase):
                 ))
 
     def _eval_get_expr(self):
+        """
+            Implement expression building for evaluation
+        """
         return "arg1 {} arg2".format(self.OP_TEXT)
 
     def _eval_op(self):
+        """
+            Implement binary operator evaluation
+        """
+        #pylint: disable=W0123
         tok1 = self.tokens[0]
         tok2 = self.tokens[1]
 
@@ -255,9 +295,15 @@ class OpInverse(OpUnaryBase):
     OP_TEXT = "!"
 
     def _eval_get_expr(self):
+        """
+            Override unary operator expression for python interpreter
+        """
         return "not arg"
 
     def evaluate(self):
+        """
+            Evaluate the inverse operator using a BoolToken
+        """
         return self._eval_op(BoolToken)
 
 class OpCompareBase(OpBinaryBase):
@@ -317,11 +363,19 @@ class OpLogicalBase(OpBinaryBase):
     """
 
     def _eval_check_types(self):
+        """
+            Override type checking for logical binary operators
+
+            Both tokens must be BoolType
+        """
         for t in self.tokens:
             if not t.matches_class(BoolToken):
                 Log.E("{} is not a boolean value".format(t.get_value()))
 
     def _eval_get_expr(self):
+        """
+            Override expression building for logical binary operators
+        """
         return "arg1 {} arg2".format(self.LOGICAL_OP)
 
 class OpLogicalAnd(OpLogicalBase):
@@ -372,6 +426,8 @@ class ConfigSet(Log.Debuggable):
         self.int_re = re.compile(r"^([0-9\-]+)(.*)")
         self.op_re = re.compile(r"^(!=|==|=|!|<=|<|>=|>|&&|\|\|)(.*)")
         self.whitespace_re = re.compile(r"^\s+(.*)")
+
+        self.expr = None
 
     def __str__(self):
         outstr = "Configs:\n" + str(self.configs)

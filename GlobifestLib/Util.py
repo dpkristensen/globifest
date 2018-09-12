@@ -129,15 +129,22 @@ class Container(dict):
         return outstr
 
     def _get_diff(self, other):
+        """
+            Return a containerized diff between this and the other container
+
+            @note list elements in the first nesting level are deduplicated, but the algorithm is
+                not recursive to deeper list elements.
+        """
         # First make a copy of this dict
         out_dict = copy.deepcopy(self)
 
-        # Add/Remove any element in the 2nd list that does not exist in the first
+        # Deduplicate lists lists
         for k, v in other:
             if k not in out_dict:
                 # Add any missing top-level element
                 out_dict[k] = copy.deepcopy(v)
             elif isinstance(v, list):
+                # If the element is a list, create diffs of the two
                 o1 = [e for e in out_dict[k] if e not in other[k]]
                 o2 = [e for e in other[k] if e not in out_dict[k]]
                 out_dict[k] = o1 + o2

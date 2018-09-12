@@ -33,7 +33,6 @@
 
 import re
 import sys
-import test
 import time
 import types
 import unittest
@@ -41,12 +40,28 @@ import unittest
 from GlobifestLib import Log
 
 import Globitest
+#pylint: disable=W0401
 from Globitest import *
+
+def add_tests_by_expressions(expressions, test_ref_list):
+    """Add tests by matching expressions"""
+    #pylint: disable=W0123
+    for expr_text in expressions:
+        expr = re.compile(expr_text)
+        for test_ref in test_ref_list:
+            if expr.match(test_ref["desc"]):
+                # Must instantiate the class before adding
+                key = test_ref["desc"]
+                if not hasattr(test_inst, key):
+                    obj = eval("{}(methodName='{}')".format(test_ref["cname"], test_ref["fname"]))
+                    test_inst[key] = obj
+                suite.addTest(test_inst[key])
 
 def get_tests():
     """
         Return a list of test classes in the Globitest namespace
     """
+    #pylint: disable=W0123
     class_list = []
     for module_name in dir(Globitest):
         module_inst = eval("Globitest.{}".format(module_name))
@@ -91,6 +106,8 @@ class CustomTestResult(unittest.TestResult):
         This class overrides unittest default output style to enhance traceability of the failure,
         specifically with regard to preserving failure output in relation to the test name.
     """
+    #pylint: disable=W0201
+    #pylint: disable=W0212
 
     def __init__(self, stream, descriptions, verbosity):
         super_class = super(CustomTestResult, self)
@@ -187,16 +204,7 @@ else:
 
 suite = unittest.TestSuite()
 test_inst = dict()
-for expr_text in match_expresions:
-    expr = re.compile(expr_text)
-    for test in test_list:
-        if expr.match(test["desc"]):
-            # Must instantiate the class before adding
-            key = test["desc"]
-            if not hasattr(test_inst, key):
-                obj = eval("{}(methodName='{}')".format(test["cname"], test["fname"]))
-                test_inst[key] = obj
-            suite.addTest(test_inst[key])
+add_tests_by_expressions(match_expresions, test_list)
 
 runner = unittest.TextTestRunner()
 runner.resultclass = CustomTestResult

@@ -35,11 +35,8 @@
 
 import argparse
 import re
-import sys
 
-# Import GlobifestLib and modules
-import GlobifestLib
-from GlobifestLib import *
+from GlobifestLib import ConfigSet, Builder, Log, Util
 
 def run_cmd():
     """
@@ -50,20 +47,21 @@ def run_cmd():
     """
 
     parser = argparse.ArgumentParser(
-        formatter_class = argparse.RawDescriptionHelpFormatter,
-        description = "Global Package Manifest Builder",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Global Package Manifest Builder",
         fromfile_prefix_chars="@",
-        epilog =
-        "Confguration examples:\n"
-        "    os=\"linux\" module=\"foobaz\"\n"
-        "    max_threads=1\n"
-        "    do_logging  (evaluates to empty string)\n"
-        "    text=\"This is all one value\"\n"
-        "    @my_settings.cfg  (imports settings from my_settings.cfg)\n"
+        epilog="\n".join([
+            "Confguration examples:",
+            "    os=\"linux\" module=\"foobaz\"",
+            "    max_threads=1",
+            "    do_logging  (evaluates to empty string)",
+            "    text=\"This is all one value\"",
+            "    @my_settings.cfg  (imports settings from my_settings.cfg)"
+            ])
         )
     parser.add_argument(
-        "-i","--input",
-        help = "package file to parse",
+        "-i", "--input",
+        help="package file to parse",
         action="store",
         dest="in_fname",
         type=str,
@@ -72,8 +70,8 @@ def run_cmd():
         )
 
     parser.add_argument(
-        "-o","--output",
-        help = "Where to save output",
+        "-o", "--output",
+        help="Where to save output",
         action="store",
         dest="out_fname",
         type=str,
@@ -93,9 +91,11 @@ def run_cmd():
 
     parser.add_argument(
         "--format",
-        help="Format string to apply to each entry in the output (default=\"{}\\n\")\n"
-            "The items appear as follows:\n"
-            "    {} = Entry text (header file, etc...)",
+        help="\n".join([
+            "Format string to apply to each entry in the output (default=\"{}\\n\")",
+            "The items appear as follows:",
+            "    {} = Entry text (header file, etc...)"
+            ]),
         action="store",
         dest="format_str",
         type=str,
@@ -114,7 +114,7 @@ def run_cmd():
         )
 
     parser.add_argument(
-        "-v","--verbose",
+        "-v", "--verbose",
         help="Print verbose output to stdout (0=None (default), 1=Basic, 2=Verbose, 3=Extreme)",
         action="store",
         dest="verbose",
@@ -146,7 +146,7 @@ def run_cmd():
         pair_regex = re.compile("([^=]*)=\"?(.*?)\"?$", re.MULTILINE)
         single_regex = re.compile("([^=]*)", re.MULTILINE)
 
-        manifest_configs=Util.Container()
+        manifest_configs = Util.Container()
 
         Log.D("Configs:")
         for config in args.configlist:
@@ -162,7 +162,6 @@ def run_cmd():
             if m:
                 value = manifest_configs[m.group(1)]
                 Log.D("  {} = {}({})".format(m.group(1), type(value).__name__, value))
-                pass
             else:
                 Log.E("Invalid config: {}".format(config), Log.ERROR.INPUT)
 
@@ -179,4 +178,4 @@ def run_cmd():
     return 0
 
 if __name__ == "__main__":
-    exit( run_cmd() )
+    exit(run_cmd())

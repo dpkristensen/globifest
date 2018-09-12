@@ -31,17 +31,12 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import os
-import pathlib
-
 from GlobifestLib import Manifest, ManifestParser, ManifestReader
 
 def build_manifest(in_fname, configset):
     """
-    Build a manifest from the given file
+      Build a manifest from the given file
     """
-
-    # Create object tree
     manifest = Manifest.new(in_fname)
     parser = ManifestParser.new(manifest, configset)
     reader = ManifestReader.new(parser)

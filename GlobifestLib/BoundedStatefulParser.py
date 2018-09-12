@@ -63,6 +63,7 @@ class BoundedStatefulParser(StatefulParser.Base):
         self._set_state(BOUNDED_STATE.LBOUND)
         self.stack_level = 0
         self.string_char = None
+        self.new_state = self._get_state()
 
         self._debug("L=\"{}\" R=\"{}\"".format(self.lbound, self.rbound))
         self._debug("STRD={} STRE={}".format(self.string_delims, self.string_escape))
