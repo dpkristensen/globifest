@@ -41,23 +41,30 @@ def new_manifest():
     return Manifest.new(TEST_FNAME)
 
 def new_configset(configs):
+    """Return a ConfigSet with the given configuration"""
     return ConfigSet.new(configs)
 
 class DummyManifestParser:
+    """Test dummy for a manifest parser"""
+
     def __init__(self):
         self.lines = []
         self.manifest = new_manifest()
 
     def get_manifest(self):
+        """Return the target manifest"""
         return self.manifest
 
     def parse(self, info):
+        """Append the LineInfo to the list of lines observed"""
         self.lines.append(info)
 
     def parse_end(self):
+        """Stub; does nothing"""
         pass
 
 new_parser = DummyManifestParser
 
 def new_file(*args):
+    """Create a file-like object using a list of strings representing lines in the file"""
     return io.StringIO("\n".join(args))
