@@ -204,15 +204,15 @@ class OpUnaryBase(OpBase):
         tok = self.tokens[0]
         arg = tok.get_value()
         self._eval_check_type(base_type)
-        self._debug("OP EVAL: {} {}({})".format(
+        self.debug("OP EVAL: {} {}({})".format(
             self.OP_TEXT,
             tok.get_name(),
             str(arg),
             ))
-        self._debug("  EXPR=" + self._eval_get_expr())
-        self._debug("  arg={}({})".format(arg, type(arg)))
+        self.debug("  EXPR=" + self._eval_get_expr())
+        self.debug("  arg={}({})".format(arg, type(arg)))
         result = eval(self._eval_get_expr())
-        self._debug("RESULT: {}".format(result))
+        self.debug("RESULT: {}".format(result))
         return result
 
 class OpBinaryBase(OpBase):
@@ -272,19 +272,19 @@ class OpBinaryBase(OpBase):
         arg2 = tok2.get_value()
 
         self._eval_check_types()
-        self._debug("OP EVAL: {}({}) {} {}({})".format(
+        self.debug("OP EVAL: {}({}) {} {}({})".format(
             tok1.get_name(),
             str(arg1),
             self.OP_TEXT,
             tok2.get_name(),
             str(arg2)
             ))
-        self._debug("  EXPR=" + self._eval_get_expr())
-        self._debug("  arg1={}({})".format(arg1, type(arg1)))
-        self._debug("  arg2={}({})".format(arg2, type(arg2)))
-        self._debug("  ACTUAL EXPR={}".format(self._eval_get_expr()))
+        self.debug("  EXPR=" + self._eval_get_expr())
+        self.debug("  arg1={}({})".format(arg1, type(arg1)))
+        self.debug("  arg2={}({})".format(arg2, type(arg2)))
+        self.debug("  ACTUAL EXPR={}".format(self._eval_get_expr()))
         result = eval(self._eval_get_expr())
-        self._debug("RESULT: {}".format(result))
+        self.debug("RESULT: {}".format(result))
         return result
 
 class OpInverse(OpUnaryBase):
@@ -479,7 +479,7 @@ class ConfigSet(Log.Debuggable):
                 continue
 
             if m.is_fullmatch(self.int_re):
-                self._debug("INT: " + m[1])
+                self.debug("INT: " + m[1])
                 if tok:
                     Log.E("Unexpected integer '{}'".format(m[1]))
                 tok = IntToken(m[1])
@@ -494,20 +494,20 @@ class ConfigSet(Log.Debuggable):
                     mapped_ident = RESERVED_IDENT_MAP[ident]
                     mapped_class = mapped_ident[RESERVED_IDENT.CLASS]
                     mapped_value = mapped_ident[RESERVED_IDENT.VALUE]
-                    self._debug("RESERVED: {} class={} value={}".format(
+                    self.debug("RESERVED: {} class={} value={}".format(
                         ident,
                         mapped_class.TOKEN_TYPE,
                         mapped_value
                         ))
                     tok = mapped_class(mapped_value)
                 else:
-                    self._debug("IDENT: " + ident)
+                    self.debug("IDENT: " + ident)
                     tok = IdentToken(m[1], self)
                 self.expr = m[2]
                 continue
 
             if m.is_fullmatch(self.op_re):
-                self._debug("OP: " + m[1])
+                self.debug("OP: " + m[1])
                 if op is not None:
                     Log.E("Spurious operator '{}' after operator '{}'".format(m[1], op.OP_TEXT))
                 if m[1] == "!":
@@ -544,9 +544,9 @@ class ConfigSet(Log.Debuggable):
                     "(", ")",
                     BOUNDED_PARSER_FLAGS | StatefulParser.FLAGS.MULTI_LEVEL
                     )
-                self._debug("PAREN: " + string_parser.get_parsed_text())
+                self.debug("PAREN: " + string_parser.get_parsed_text())
                 if StatefulParser.PARSE_STATUS.FINISHED != string_parser.get_status():
-                    self._debug(string_parser.get_debug_log())
+                    self.debug(string_parser.get_debug_log())
                     Log.E("Malformed parenthetical in expression: " + self.expr)
                 tok = BoolToken(self.evaluate(string_parser.get_parsed_text()))
                 self.expr = string_parser.get_remaining_text()
@@ -560,7 +560,7 @@ class ConfigSet(Log.Debuggable):
                     )
                 if StatefulParser.PARSE_STATUS.FINISHED != string_parser.get_status():
                     Log.E("Malformed string in expression: " + self.expr)
-                self._debug("STRING DQ: " + string_parser.get_parsed_text())
+                self.debug("STRING DQ: " + string_parser.get_parsed_text())
                 tok = StringToken(string_parser.get_parsed_text())
                 self.expr = string_parser.get_remaining_text()
                 continue
@@ -573,7 +573,7 @@ class ConfigSet(Log.Debuggable):
                     )
                 if StatefulParser.PARSE_STATUS.FINISHED != string_parser.get_status():
                     Log.E("Malformed string in expression: " + self.expr)
-                self._debug("STRING SQ: " + string_parser.get_parsed_text())
+                self.debug("STRING SQ: " + string_parser.get_parsed_text())
                 tok = StringToken(string_parser.get_parsed_text())
                 self.expr = string_parser.get_remaining_text()
                 continue

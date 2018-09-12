@@ -123,13 +123,13 @@ class StatefulParser(StateMachine.Base):
 
         self.text += new_text
 
-        self._debug("--parse--")
-        self._debug("state={}".format(self._get_new_state()))
+        self.debug("--parse--")
+        self.debug("state={}".format(self._get_new_state()))
         self._debug_log_text()
 
         while self.status != PARSE_STATUS.ERROR:
             self.loop_count += 1
-            self._debug("--loop {}--".format(self.loop_count))
+            self.debug("--loop {}--".format(self.loop_count))
 
             prev_text = self.text
 
@@ -156,7 +156,7 @@ class StatefulParser(StateMachine.Base):
             # No state change, so add all remaining text as parsed
             self._append_parsed_text(self.text)
             self.text = ""
-            self._debug("text->parsed")
+            self.debug("text->parsed")
 
             if not self.text:
                 # Ran out of data to parse
@@ -170,9 +170,9 @@ class StatefulParser(StateMachine.Base):
 
     def _complete_parse(self):
         self.status = PARSE_STATUS.FINISHED
-        self._debug("--end--")
+        self.debug("--end--")
 
     def _debug_log_text(self):
-        self._debug("text=\"{}\", parsed=\"{}\"".format(self.text, self.parsed_text))
+        self.debug("text=\"{}\", parsed=\"{}\"".format(self.text, self.parsed_text))
 
 Base = StatefulParser

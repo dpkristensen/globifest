@@ -115,7 +115,7 @@ class Context(object):
     def is_condition_met(self):
         """Return True if this context and all parent context conditions are met"""
         ctx = self
-        while ctx and (ctx.cond_state._get_state() == COND_STATE.MET):
+        while ctx and (ctx.cond_state.get_state() == COND_STATE.MET):
             ctx = ctx.prev_context
 
         return ctx is None
@@ -126,18 +126,18 @@ class Context(object):
             * When the condition is met, change it to satisfied
             * Revert to the original label this context was started with
         """
-        if self.cond_state._get_state() == COND_STATE.MET:
-            self.cond_state._transition(COND_STATE.SATISFIED)
+        if self.cond_state.get_state() == COND_STATE.MET:
+            self.cond_state.transition(COND_STATE.SATISFIED)
         if self.label != self.init_label:
             self.label = self.init_label
-            self.manifest_parser._debug("LABEL: {}".format(self.init_label))
+            self.manifest_parser.debug("LABEL: {}".format(self.init_label))
 
     def process_conditional_default(self):
         """
             If no conditions have been met, mark it as met now
         """
-        if self.cond_state._get_state() == COND_STATE.NOT_MET:
-            self.cond_state._transition(COND_STATE.MET)
+        if self.cond_state.get_state() == COND_STATE.NOT_MET:
+            self.cond_state.transition(COND_STATE.MET)
 
     def process_line(self, text):
         """
@@ -160,7 +160,7 @@ class Context(object):
         # parse until finished or error
         status = self.context_parser.get_status()
         if status == StatefulParser.PARSE_STATUS.ERROR:
-            self.manifest_parser._debug(self.context_parser.get_debug_log())
+            self.manifest_parser.debug(self.context_parser.get_debug_log())
             self.manifest_parser.log_error("Malformed condition")
         elif status == StatefulParser.PARSE_STATUS.INCOMPLETE:
             return
@@ -169,7 +169,7 @@ class Context(object):
         expr = self.context_parser.get_parsed_text()
 
         result = self.manifest_parser.configset.evaluate(expr)
-        self.manifest_parser._debug("COND EXPR: '{}' = {}".format(expr, result))
+        self.manifest_parser.debug("COND EXPR: '{}' = {}".format(expr, result))
 
         if self.context_parser.get_remaining_text():
             self.manifest_parser.log_error(
@@ -181,8 +181,8 @@ class Context(object):
         # Done parsing the expression, so delete the parser
         self.context_parser = None
 
-        if result and (self.cond_state._get_state() == COND_STATE.NOT_MET):
-            self.cond_state._transition(COND_STATE.MET)
+        if result and (self.cond_state.get_state() == COND_STATE.NOT_MET):
+            self.cond_state.transition(COND_STATE.MET)
 
 class ManifestParser(Log.Debuggable):
     """
@@ -250,7 +250,7 @@ class ManifestParser(Log.Debuggable):
         """
         self.line_info = line_info
         line = line_info.get_text()
-        self._debug("PARSE: {}".format(line))
+        self.debug("PARSE: {}".format(line))
 
         cur_context = self.context_stack[-1]
         if cur_context.process_line(line):
@@ -346,19 +346,19 @@ class ManifestParser(Log.Debuggable):
         m = Matcher.new(text.lower())
 
         if m.is_fullmatch(self.condition_if_re):
-            self._debug("IF: {}".format(m[1]))
+            self.debug("IF: {}".format(m[1]))
             self._condition_start_if(m[1].lstrip())
         elif m.is_fullmatch(self.condition_elif_re):
-            self._debug("ELIF: {}".format(m[1]))
+            self.debug("ELIF: {}".format(m[1]))
             self._condition_start_elif(m[1].lstrip())
         elif m.is_fullmatch(self.condition_else_re):
-            self._debug("ELSE")
+            self.debug("ELSE")
             self._condition_start_else()
         elif m.is_fullmatch(self.condition_end_re):
-            self._debug("END")
+            self.debug("END")
             self._condition_end()
         elif m.is_fullmatch(self.label_re):
-            self._debug("LABEL: {}".format(m[1]))
+            self.debug("LABEL: {}".format(m[1]))
             # Label directive (:x)
             self._parse_directive_label(m[1])
         elif not m.found:
@@ -394,10 +394,10 @@ class ManifestParser(Log.Debuggable):
 
         # If this is parsed in a condition context, skip over unmatching entries
         if not cur_context.is_condition_met():
-            self._debug("SKIP_ENTRY: {}".format(entry))
+            self.debug("SKIP_ENTRY: {}".format(entry))
             return
 
-        self._debug("ADD_ENTRY: {}".format(entry))
+        self.debug("ADD_ENTRY: {}".format(entry))
         self.manifest.add_entry(cur_context.label, entry)
 
 new = ManifestParser

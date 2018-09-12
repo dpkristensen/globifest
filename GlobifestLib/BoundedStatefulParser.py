@@ -60,13 +60,13 @@ class BoundedStatefulParser(StatefulParser.Base):
         self.string_escape = string_escape
 
         # Set state parameters
-        self._set_state(BOUNDED_STATE.LBOUND)
+        self.set_state(BOUNDED_STATE.LBOUND)
         self.stack_level = 0
         self.string_char = None
-        self.new_state = self._get_state()
+        self.new_state = self.get_state()
 
-        self._debug("L=\"{}\" R=\"{}\"".format(self.lbound, self.rbound))
-        self._debug("STRD={} STRE={}".format(self.string_delims, self.string_escape))
+        self.debug("L=\"{}\" R=\"{}\"".format(self.lbound, self.rbound))
+        self.debug("STRD={} STRE={}".format(self.string_delims, self.string_escape))
 
         if text:
             self.parse()
@@ -77,11 +77,11 @@ class BoundedStatefulParser(StatefulParser.Base):
 
     def has_lbound(self):
         """Return whether the L bound has been found"""
-        return self._get_state() != BOUNDED_STATE.LBOUND
+        return self.get_state() != BOUNDED_STATE.LBOUND
 
     def on_text(self):
         """Handle text parsed from the caller."""
-        if self._get_state() == BOUNDED_STATE.DONE:
+        if self.get_state() == BOUNDED_STATE.DONE:
             # Stop if done
             self._complete_parse()
             return
@@ -105,21 +105,21 @@ class BoundedStatefulParser(StatefulParser.Base):
             # Use the previous delimeter if a string is started
             strd_pos = self.text.find(self.string_char)
         stre_pos = self.text.find(self.string_escape)
-        self._debug("lpos={} rpos={} sdpos={} sepos={}".format(lpos, rpos, strd_pos, stre_pos))
+        self.debug("lpos={} rpos={} sdpos={} sepos={}".format(lpos, rpos, strd_pos, stre_pos))
 
         # Check string logic first, since it overrides boundary logic
         if self.string_char is not None:
             # String has been started; end string before returning to boundary logic
             if strd_pos >= 0:
                 # String delimiter is found
-                self._debug("Append string")
+                self.debug("Append string")
                 if (stre_pos >= 0) and ((stre_pos + 1) == strd_pos):
                     # Escaped delimiter, skip
                     self._append_parsed_text(self.text[:strd_pos + 1])
                     self.text = self.text[strd_pos + 1:]
                     return
                 else:
-                    self._debug("End string")
+                    self.debug("End string")
                     self.string_char = None
                     if not self.string_is_bound:
                         # If the string is not the boundary, consider it parsed here
@@ -128,7 +128,7 @@ class BoundedStatefulParser(StatefulParser.Base):
                         return
             else:
                 # No need to check string_is_bound, since no boundary to process either way.
-                self._debug("Append whole string")
+                self.debug("Append whole string")
                 self._append_parsed_text(self.text)
                 self.text = ""
                 return
@@ -143,7 +143,7 @@ class BoundedStatefulParser(StatefulParser.Base):
             else:
                 # Not in a string; but one is being started
                 self.string_char = self.text[strd_pos]
-                self._debug("Enter string: {}".format(self.string_char))
+                self.debug("Enter string: {}".format(self.string_char))
                 if not self.string_is_bound:
                     # If the string is not the boundary, consider it parsed here
                     self._append_parsed_text(self.text[:strd_pos + 1])
@@ -153,12 +153,12 @@ class BoundedStatefulParser(StatefulParser.Base):
         # Check boundary logic
         if (lpos < 0) and (rpos < 0):
             # Neither boundary is present
-            if (self.parsed_text == "") and (self._get_state() == BOUNDED_STATE.LBOUND):
+            if (self.parsed_text == "") and (self.get_state() == BOUNDED_STATE.LBOUND):
                 # A boundary should be the first thing we find
                 self.error("Unexpected text '{}'".format(self.text))
             return
 
-        if self._get_state() == BOUNDED_STATE.LBOUND:
+        if self.get_state() == BOUNDED_STATE.LBOUND:
             if (rpos >= 0) and (rpos < lpos):
                 # Exiting an inner level
                 self.pop_stack(rpos, self.rbound, True)
@@ -166,12 +166,12 @@ class BoundedStatefulParser(StatefulParser.Base):
             elif lpos >= 0:
                 # Entering new level, include boundary only for inner levels
                 self.push_stack(lpos, self.lbound)
-                self._set_state(BOUNDED_STATE.RBOUND)
+                self.set_state(BOUNDED_STATE.RBOUND)
                 return
             else:
                 # Input prior to the boundary is illegal
                 self.error("Expected '{}'".format(self.lbound))
-        elif self._get_state() == BOUNDED_STATE.RBOUND:
+        elif self.get_state() == BOUNDED_STATE.RBOUND:
             if (lpos >= 0) and (lpos < rpos):
                 # Entering an inner level
                 self.push_stack(lpos, self.lbound)
@@ -180,11 +180,11 @@ class BoundedStatefulParser(StatefulParser.Base):
                 # Exiting level, include boundary only for inner levels
                 self.pop_stack(rpos, self.rbound, (self.stack_level > 1))
                 if self.stack_level == 0:
-                    self._set_state(BOUNDED_STATE.DONE)
+                    self.set_state(BOUNDED_STATE.DONE)
                 return
         else:
             # This should never happen
-            self.error("Unexpected state {}".format(self._get_state()))
+            self.error("Unexpected state {}".format(self.get_state()))
 
     def pop_stack(self, boundary_pos, boundary, include_boundary):
         """Reduce the number of nesting levels by one by exiting a boundary"""
@@ -205,7 +205,7 @@ class BoundedStatefulParser(StatefulParser.Base):
             self.stack_level -= 1
         if self.stack_level == 0:
             self.new_state = BOUNDED_STATE.DONE
-        self._debug("pop L={}".format(self.stack_level))
+        self.debug("pop L={}".format(self.stack_level))
 
     def push_stack(self, boundary_pos, boundary):
         """Increase the number of nesting levels by one by entering a boundary"""
@@ -228,6 +228,6 @@ class BoundedStatefulParser(StatefulParser.Base):
             # Move start pointer up to just past boundary
             self.text = self.text[boundary_pos+1:]
             self.stack_level += 1
-        self._debug("push L={}".format(self.stack_level))
+        self.debug("push L={}".format(self.stack_level))
 
 new = BoundedStatefulParser

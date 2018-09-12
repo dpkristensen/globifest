@@ -57,22 +57,27 @@ class StateMachine(Log.Debuggable):
 
         return False
 
-    def _get_state(self):
+    def get_state(self):
+        """Return the current state"""
         return self._sm_base.state
 
     def _get_new_state(self):
+        """Return the state pending a transition"""
         return self._sm_base.new_state
 
     def _set_title(self, text):
+        """Set the title of the state machine for debugging"""
         self.title = text
 
-    def _set_state(self, new_state):
+    def set_state(self, new_state):
+        """Set the title of the state machine"""
         if new_state != self._sm_base.state:
-            self._debug("{}={}->{}".format(self.title, self._sm_base.state, new_state))
+            self.debug("{}={}->{}".format(self.title, self._sm_base.state, new_state))
         self._sm_base.new_state = new_state
 
-    def _transition(self, new_state):
-        self._set_state(new_state)
+    def transition(self, new_state):
+        """Set the new state and transition immediately"""
+        self.set_state(new_state)
         return self._do_state_transition()
 
 Base = StateMachine
@@ -81,6 +86,7 @@ def Owned(parent, title, init_state=0):
     """
     Factory method to create an owned state machine, which links to the parent's debug log.
     """
+    #pylint: disable=W0212
     sm = StateMachine(init_state=init_state)
     sm.link_debug_log(parent)
     sm._set_title(title)

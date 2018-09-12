@@ -157,9 +157,9 @@ class CaptureStdout(object):
     def __exit__(self, var_type, var_value, traceback):
         if self.stream.getvalue():
             # Only print if something was captured
-            self.debuggable._debug(self.header)
+            self.debuggable.debug(self.header)
             for line in self.stream.getvalue().splitlines():
-                self.debuggable._debug(line)
+                self.debuggable.debug(line)
         del self.stream
         sys.stdout = self.orig_stdout
 
@@ -177,12 +177,14 @@ class Debuggable(object):
             text=""
             )
 
-    def _debug(self, debug_text):
+    def debug(self, debug_text):
+        """Write text to the debug log"""
         if self._debuggable.enabled:
             self._debuggable.text += "\n  " + debug_text
 
     def link_debug_log(self, parent):
         """Link this object's debug log to the parent"""
+        #pylint: disable=W0212
         self._debuggable = parent._debuggable
 
     def get_debug_mode(self):
