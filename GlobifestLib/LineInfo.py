@@ -33,20 +33,20 @@
 
 class LineInfo:
     """
-        Encapsulates information about a line of text in a manifest
+        Encapsulates information about a line of text in a source file
     """
 
-    def __init__(self, manifest, line_number, text):
-        self.manifest = manifest
+    def __init__(self, source, line_number, text):
+        self.source = source
         self.line = line_number
         self.text = text
 
     def __str__(self):
-        return "{}:{}".format(self.manifest.get_filename(), self.line)
+        return "{}:{}".format(self.source.get_filename(), self.line)
 
     def get_filename(self):
         """Return the filename where this line of text originated"""
-        return self.manifest.get_filename()
+        return self.source.get_filename()
 
     def get_line(self):
         """Return the line number where this line of text originated"""
