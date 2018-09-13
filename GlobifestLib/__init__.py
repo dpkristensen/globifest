@@ -38,6 +38,7 @@ __copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiari
 __all__ = [
     "BoundedStatefulParser",
     "Builder",
+    "ConfigDef",
     "ConfigSet",
     "LineInfo",
     "LineReader",
