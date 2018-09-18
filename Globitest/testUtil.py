@@ -31,6 +31,7 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import copy
 import unittest
 
 from GlobifestLib import Util
@@ -116,6 +117,42 @@ class TestUtil(unittest.TestCase):
             c = [5, 6]
             )
         self.assertEqual(container1._get_diff(container2), result)
+
+    def test_container_copy(self):
+        original = Util.Container(
+            a = [1, 2],
+            b = [3, 4]
+            )
+        shadow = copy.copy(original)
+        self.assertEqual(original, shadow)
+
+        # Verify shallow copy by modifying a member
+        original.a[0] = 5
+        self.assertEqual(original.a, [5, 2])
+        self.assertEqual(shadow.a, [5, 2])
+
+        # Verify member replacement
+        original.a = [6, 7]
+        self.assertEqual(original.a, [6, 7])
+        self.assertEqual(shadow.a, [5, 2])
+
+    def test_container_deepcopy(self):
+        original = Util.Container(
+            a = [1, 2],
+            b = [3, 4]
+            )
+        shadow = copy.deepcopy(original)
+        self.assertEqual(original, shadow)
+
+        # Verify deep copy by modifying a member
+        original.a[1] = 5
+        self.assertEqual(original.a, [1, 5])
+        self.assertEqual(shadow.a, [1, 2])
+
+        # Verify member replacement
+        original.a = [6, 7]
+        self.assertEqual(original.a, [6, 7])
+        self.assertEqual(shadow.a, [1, 2])
 
     def test_create_enum(self):
         testEnum = Util.create_enum("a", "b", "c", "d")

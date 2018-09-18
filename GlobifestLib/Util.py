@@ -110,6 +110,12 @@ class Container(dict):
     def __iter__(self):
         return iter(self.items())
 
+    def __copy__(self):
+        new_obj = Container()
+        for k, v in self.items():
+            new_obj[k] = v
+        return new_obj
+
     def __deepcopy__(self, memo):
         new_obj = Container()
         for k, v in self.items():
