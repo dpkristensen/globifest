@@ -40,6 +40,47 @@ PARAM_TYPE = Util.create_enum(
     "FLOAT"
     )
 
+
+def validate_type(ptype):
+    """Returns the ptype validated as a PARAM_TYPE value, or None if invalid"""
+    if not isinstance(ptype, str):
+        return None
+
+    ucase = ptype.upper()
+    if ucase not in PARAM_TYPE.enum_id:
+        return None
+
+    return PARAM_TYPE.__dict__.get(ucase)
+
+
+def validate_value(ptype, value):
+    """Return the value validated as ptype, or None if invalid"""
+    if value is None:
+        return None
+
+    ret = None
+    if ptype == PARAM_TYPE.BOOL:
+        lvalue = value.lower()
+        if lvalue == "false":
+            ret = False
+        elif lvalue == "true":
+            ret = True
+    elif ptype == PARAM_TYPE.STRING:
+        ret = value
+    elif ptype == PARAM_TYPE.INT:
+        try:
+            ret = int(value)
+        except ValueError:
+            pass
+    elif ptype == PARAM_TYPE.FLOAT:
+        try:
+            ret = float(value)
+        except ValueError:
+            pass
+
+    return ret
+
+
 class Parameter(object):
     """
         Encapsulates a parameter definition

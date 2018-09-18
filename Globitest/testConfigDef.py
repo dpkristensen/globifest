@@ -133,3 +133,117 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(c.get_children().scope_c.get_params(), [self.pc])
         self.assertEqual(c.get_children().scope_abc.get_name(), "scope_abc")
         self.assertEqual(c.get_children().scope_abc.get_params(), [self.pa, self.pb, self.pc])
+
+    def test_validate_type(self):
+        test_tbl = [
+            ("BOOL", ConfigDef.PARAM_TYPE.BOOL),
+            ("bool", ConfigDef.PARAM_TYPE.BOOL),
+            ("BoOl", ConfigDef.PARAM_TYPE.BOOL),
+
+            ("STRING", ConfigDef.PARAM_TYPE.STRING),
+            ("string", ConfigDef.PARAM_TYPE.STRING),
+            ("StrIng", ConfigDef.PARAM_TYPE.STRING),
+
+            ("INT", ConfigDef.PARAM_TYPE.INT),
+            ("int", ConfigDef.PARAM_TYPE.INT),
+            ("iNt", ConfigDef.PARAM_TYPE.INT),
+
+            ("FLOAT", ConfigDef.PARAM_TYPE.FLOAT),
+            ("float", ConfigDef.PARAM_TYPE.FLOAT),
+            ("flOAt", ConfigDef.PARAM_TYPE.FLOAT),
+
+            ("Bol",     None),
+            ("nt",      None),
+            ("str1ng",  None),
+            ("fl0at",   None),
+            (None,      None)
+            ]
+
+        for t in test_tbl:
+            self.assertEqual(
+                ConfigDef.validate_type(t[0]),
+                t[1],
+                msg="{} -> {}".format(t[0], t[1])
+                )
+
+    def test_validate_value_bool(self):
+        test_tbl = [
+            ("TRUE", True),
+            ("true", True),
+            ("trUe", True),
+
+            ("FALSE", False),
+            ("false", False),
+            ("False", False),
+
+            ("fa1se",   None),
+            ("treu",    None),
+            ("no",      None),
+            ("nil",     None),
+            (None,      None)
+            ]
+
+        for t in test_tbl:
+            self.assertEqual(
+                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.BOOL, t[0]),
+                t[1],
+                msg="'{}' -> {}".format(t[0], t[1])
+                )
+
+    def test_validate_value_float(self):
+        test_tbl = [
+            (   "0",       0.0),
+            ( "0.0",       0.0),
+            ("-100",    -100.0),
+            ("-100.5",  -100.5),
+            ( "200.1",   200.1),
+            ("+300",     300.0),
+            ("+300.002", 300.002),
+
+            ("abc", None),
+            ("O",   None),
+            (None,  None)
+            ]
+
+        for t in test_tbl:
+            self.assertEqual(
+                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.FLOAT, t[0]),
+                t[1],
+                msg="'{}' -> {}".format(t[0], t[1])
+                )
+
+    def test_validate_value_int(self):
+        test_tbl = [
+            (   "0",    0),
+            ( " 0 ",    0),
+            ("-100", -100),
+            ( "200",  200),
+            ("+300",  300),
+
+            ("1.5", None),
+            ("abc", None),
+            ("O",   None),
+            (None,  None)
+            ]
+
+        for t in test_tbl:
+            self.assertEqual(
+                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.INT, t[0]),
+                t[1],
+                msg="'{}' -> {}".format(t[0], t[1])
+                )
+
+    def test_validate_value_string(self):
+        test_tbl = [
+            ("", ""),
+            ("lel", "lel"),
+            ("\"", '"'),
+            (None, None)
+            ]
+
+        for t in test_tbl:
+            self.assertEqual(
+                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.STRING, t[0]),
+                t[1],
+                msg="'{}' -> {}".format(t[0], t[1])
+                )
