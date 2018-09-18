@@ -55,8 +55,15 @@ class TestConfigDef(unittest.TestCase):
         self.pc = ConfigDef.Parameter(
             pid="IDENTIFIER_C",
             ptitle="Value C",
-            ptype=ConfigDef.PARAM_TYPE.NUMERIC,
+            ptype=ConfigDef.PARAM_TYPE.INT,
             pdesc="Description of C"
+            # No default
+            )
+        self.pd = ConfigDef.Parameter(
+            pid="IDENTIFIER_D",
+            ptitle="Value D",
+            ptype=ConfigDef.PARAM_TYPE.FLOAT,
+            pdesc="Description of D"
             # No default
             )
 
@@ -84,7 +91,13 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(self.pc.get_description(), "Description of C")
         self.assertEqual(self.pc.get_identifier(), "IDENTIFIER_C")
         self.assertEqual(self.pc.get_title(), "Value C")
-        self.assertEqual(self.pc.get_type(), ConfigDef.PARAM_TYPE.NUMERIC)
+        self.assertEqual(self.pc.get_type(), ConfigDef.PARAM_TYPE.INT)
+
+        self.assertEqual(self.pd.get_default_value(), None)
+        self.assertEqual(self.pd.get_description(), "Description of D")
+        self.assertEqual(self.pd.get_identifier(), "IDENTIFIER_D")
+        self.assertEqual(self.pd.get_title(), "Value D")
+        self.assertEqual(self.pd.get_type(), ConfigDef.PARAM_TYPE.FLOAT)
 
     def test_flat_config(self):
         c = ConfigDef.new(filename="test.def")

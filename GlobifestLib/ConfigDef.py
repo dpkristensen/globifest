@@ -36,7 +36,8 @@ from GlobifestLib import Util
 PARAM_TYPE = Util.create_enum(
     "BOOL",
     "STRING",
-    "NUMERIC"
+    "INT",
+    "FLOAT"
     )
 
 class Parameter(object):
