@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/Builder.py - globifest
+    globifest/ManifestParser.py - globifest
 
     This script processes package descriptor files and generates output for plugging into another
     build system.
