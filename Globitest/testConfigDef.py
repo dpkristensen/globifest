@@ -80,24 +80,28 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(self.pa.get_identifier(), "IDENTIFIER_A")
         self.assertEqual(self.pa.get_title(), "Value A")
         self.assertEqual(self.pa.get_type(), ConfigDef.PARAM_TYPE.BOOL)
+        self.assertEqual(str(self.pa), "id=IDENTIFIER_A type=BOOL title=Value A default=FALSE desc=Description of A")
 
         self.assertEqual(self.pb.get_default_value(), "Default Text")
         self.assertEqual(self.pb.get_description(), "")
         self.assertEqual(self.pb.get_identifier(), "IDENTIFIER_B")
         self.assertEqual(self.pb.get_title(), "Value B")
         self.assertEqual(self.pb.get_type(), ConfigDef.PARAM_TYPE.STRING)
+        self.assertEqual(str(self.pb), "id=IDENTIFIER_B type=STRING title=Value B default=Default Text")
 
         self.assertEqual(self.pc.get_default_value(), None)
         self.assertEqual(self.pc.get_description(), "Description of C")
         self.assertEqual(self.pc.get_identifier(), "IDENTIFIER_C")
         self.assertEqual(self.pc.get_title(), "Value C")
         self.assertEqual(self.pc.get_type(), ConfigDef.PARAM_TYPE.INT)
+        self.assertEqual(str(self.pc), "id=IDENTIFIER_C type=INT title=Value C desc=Description of C")
 
         self.assertEqual(self.pd.get_default_value(), None)
         self.assertEqual(self.pd.get_description(), "Description of D")
         self.assertEqual(self.pd.get_identifier(), "IDENTIFIER_D")
         self.assertEqual(self.pd.get_title(), "Value D")
         self.assertEqual(self.pd.get_type(), ConfigDef.PARAM_TYPE.FLOAT)
+        self.assertEqual(str(self.pd), "id=IDENTIFIER_D type=FLOAT title=Value D desc=Description of D")
 
     def test_flat_config(self):
         c = ConfigDef.new(filename="test.def")

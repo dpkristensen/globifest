@@ -46,6 +46,7 @@ def create_enum(*identifiers):
         values["COUNT"] = len(identifiers)
 
     values["__str__"] = _enum_str
+    values["enum_id"] = identifiers
 
     return type('Enum', (), values)
 

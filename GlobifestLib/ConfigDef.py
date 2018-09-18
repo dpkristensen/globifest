@@ -54,6 +54,20 @@ class Parameter(object):
         self.pdesc = pdesc
         self.pdefault = pdefault
 
+    def __str__(self):
+        s = list()
+        if self.pid:
+            s.append("id={}".format(self.pid))
+        if self.ptype is not None:
+            s.append("type={}".format(PARAM_TYPE.enum_id[self.ptype]))
+        if self.ptitle:
+            s.append("title={}".format(self.ptitle))
+        if self.pdefault:
+            s.append("default={}".format(self.pdefault))
+        if self.pdesc:
+            s.append("desc={}".format(self.pdesc))
+        return " ".join(s)
+
     def get_default_value(self):
         """Returns the default value of the parameter"""
         return self.pdefault

@@ -160,7 +160,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(testEnum.b, 1)
         self.assertEqual(testEnum.c, 2)
         self.assertEqual(testEnum.d, 3)
-        self.assertEqual(4, testEnum.COUNT)
+        self.assertEqual(testEnum.COUNT, 4)
+        self.assertEqual(testEnum.enum_id, ("a", "b", "c", "d"))
 
     def test_create_flag_enum(self):
         testBitField = Util.create_flag_enum("a", "b", "c", "d")
