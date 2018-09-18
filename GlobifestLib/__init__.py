@@ -39,6 +39,7 @@ __all__ = [
     "BoundedStatefulParser",
     "Builder",
     "ConfigDef",
+    "ConfigParser",
     "ConfigSet",
     "LineInfo",
     "LineReader",

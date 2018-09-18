@@ -39,6 +39,7 @@ __all__ = [
     "Helpers",
     "testBoundedStatefulParser",
     "testConfigDef",
+    "testConfigParser",
     "testConfigSet",
     "testLineInfo",
     "testLineReader",
