@@ -31,6 +31,8 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import re
+
 from GlobifestLib import Util
 
 PARAM_TYPE = Util.create_enum(
@@ -39,6 +41,8 @@ PARAM_TYPE = Util.create_enum(
     "INT",
     "FLOAT"
     )
+
+SCOPE_TRIM_RE = re.compile("^/|/$")
 
 
 def validate_type(ptype):
@@ -184,5 +188,24 @@ class ConfigDef(Scope):
         """Returns the filename of the config definition"""
         return self.filename
 
+    def get_scope(self, scope_path):
+        """
+            Get the scope by path
+
+            Path nodes are created if they do not exist.
+
+            Returns the scope pertaining to scope_path, or None on invalid path or error.
+        """
+        # Strip out leading and trailing slashes, as they are optional
+        path = SCOPE_TRIM_RE.sub("", scope_path)
+        if path:
+            nodes = path.split("/")
+        else:
+            nodes = []
+
+        scope = self
+        for node_name in nodes:
+            scope = scope.add_child_scope(node_name)
+        return scope
 
 new = ConfigDef
