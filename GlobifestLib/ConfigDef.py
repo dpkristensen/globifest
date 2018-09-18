@@ -120,7 +120,13 @@ class Scope(object):
 class ConfigDef(Scope):
     """Encapsulates a nested tree of Parameters"""
 
-    def __init__(self):
+    def __init__(self, filename=""):
         Scope.__init__(self, scope_name="/", parent_scope=None)
+        self.filename = filename
+
+    def get_filename(self):
+        """Returns the filename of the config definition"""
+        return self.filename
+
 
 new = ConfigDef

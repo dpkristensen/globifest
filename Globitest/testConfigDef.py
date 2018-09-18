@@ -63,6 +63,7 @@ class TestConfigDef(unittest.TestCase):
     def test_create_empty_set(self):
         c = ConfigDef.new()
         self.assertEqual(c.get_children(), Util.Container())
+        self.assertEqual(c.get_filename(), "")
         self.assertEqual(c.get_name(), "/")
         self.assertEqual(c.get_params(), [])
 
@@ -86,12 +87,13 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(self.pc.get_type(), ConfigDef.PARAM_TYPE.NUMERIC)
 
     def test_flat_config(self):
-        c = ConfigDef.new()
+        c = ConfigDef.new(filename="test.def")
 
         self.assertEqual(self.pa, c.add_param(self.pa))
         self.assertEqual(self.pb, c.add_param(self.pb))
         self.assertEqual(self.pc, c.add_param(self.pc))
 
+        self.assertEqual(c.get_filename(), "test.def")
         self.assertEqual(c.get_params(), [self.pa, self.pb, self.pc])
 
     def test_nested_config(self):
