@@ -87,9 +87,16 @@ class Context(object):
 
     def get_scope_path(self):
         """Return the path of this scope"""
-        parent_scope_path = self.scope_path or self.prev_context.get_scope_path()
-        #TODO: If this is a menu context, append the menu name
-        return parent_scope_path
+        if self.scope_path is None:
+            # No scope specified, use parent path
+            return self.prev_context.get_scope_path()
+
+        if self.scope_path[0] == "/":
+            # Absolute path
+            return self.scope_path
+
+        # Relative path
+        return self.prev_context.get_scope_path() + self.scope_path
 
     def is_complete(self):
         """Return whether context has all required information"""
@@ -121,6 +128,14 @@ class Context(object):
         if not value:
             self.config_parser.log_error("Bad parameter: {}".format(value))
 
+        if name == "menu":
+            # The menu parameter requires special handling, since it overwrites the scope_path
+            if self.scope_path is not None:
+                self.config_parser.log_error("Redefinition of menu")
+            else:
+                self.scope_path = value
+            return
+
         if self.is_unique_element(CONFIG_ELEMENTS, name):
             if name == "type":
                 self.ctx.ptype = ConfigDef.validate_type(value)
@@ -136,6 +151,8 @@ class Context(object):
             else:
                 # No additional validation required for other elements
                 self.ctx[CONFIG_ELEMENTS[name]] = value
+        else:
+            self.config_parser.debug("not found: {}".format(name))
 
     def validate_config(self):
         """Validate the final state of a config context"""
@@ -264,7 +281,9 @@ class ConfigParser(Log.Debuggable):
 
             Add the config to the def
         """
-        scope = self.configdef.get_scope(context.get_scope_path())
+        scope_path = context.get_scope_path()
+        self.debug("{} @ {}".format(context.ctx.id, scope_path))
+        scope = self.configdef.get_scope(scope_path)
         scope.add_param(ConfigDef.Parameter(
             pid=context.ctx.id,
             ptitle=context.ctx.title,
@@ -305,7 +324,7 @@ class ConfigParser(Log.Debuggable):
                 ctype=Context.CTYPE.CONFIG,
                 id=text,
                 title=None,
-                scope_path=cur_context.get_scope_path(),
+                scope_path=None,
                 desc=None,
                 ptype=ptype,
                 default=None

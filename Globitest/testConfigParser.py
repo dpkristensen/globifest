@@ -115,13 +115,13 @@ class TestConfigParser(unittest.TestCase):
         expected_children = copy.copy(expected.get("children", no_children))
         # Match up actual children with expected children
         for actual_child in scope.get_children():
-            expected_child = expected_children.get(actual_child.get_identifier(), None)
+            expected_child = expected_children.get(actual_child[0], None)
             if expected_child is None:
-                self.fail("Unexpected child {}".format(actual_child.get_identifier()))
+                self.fail("Unexpected child {}".format(actual_child))
             else:
                 # Matched a child by identifier, verify the sub-scope
-                self._verify_scope(actual_child, expected_child)
-                expected_children.remove(expected_child)
+                self._verify_scope(actual_child[1], expected_child)
+                expected_children.pop(actual_child[0])
         if expected_children:
             # Print out the missing children
             self.fail("Missing children: {}".format(",".join(expected_children.keys())))
@@ -165,6 +165,52 @@ class TestConfigParser(unittest.TestCase):
                 "id=FOO_MAX_BAZ type=INT title=\"Max Baz\" default=10 desc=\"Max number of BAZ supported\"",
                 "id=FOO_PRECISION type=FLOAT title=\"Precision\" default=0.5 desc=\"Precision to use\""
                 ])
+            }))
+
+    def test_menu_param(self):
+        self.create_parser()
+        self.parse_lines(
+            ":config_b TOP_1",
+            ":config TOP_2",
+            "    type INT",
+            "    menu /", # Absolute path (root)
+            ":end",
+            ":config MENU_A",
+            "    type BOOL",
+            "    menu /A", # Absolute path
+            ":end",
+            ":config MENU_ABC",
+            "    type BOOL",
+            "    menu ABC", # Relative path
+            ":end",
+            ":config MENU_ABC_DEF",
+            "    type BOOL",
+            "    menu /ABC/def", # Absolute path
+            ":end",
+            ":config_b TOP_3"
+            )
+
+        self.verify_configdef(Util.Container(**{
+            "/" : Util.Container(
+                children = Util.Container(**{
+                    "A" : Util.Container(
+                        params = [ "id=MENU_A type=BOOL" ]
+                        ),
+                    "ABC" : Util.Container(
+                        params = [ "id=MENU_ABC type=BOOL" ],
+                        children = Util.Container(**{
+                            "def" : Util.Container(
+                                params = [ "id=MENU_ABC_DEF type=BOOL" ]
+                                )
+                            })
+                        )
+                    }),
+                params = [
+                    "id=TOP_1 type=BOOL",
+                    "id=TOP_2 type=INT",
+                    "id=TOP_3 type=BOOL"
+                    ]
+                )
             }))
 
     def test_minimal(self):
