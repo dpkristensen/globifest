@@ -90,14 +90,16 @@ class TestConfigParser(unittest.TestCase):
         file = Helpers.new_file("\n".join(args))
         self.reader._read_file_obj(file)
 
+    def verify_configdef(self, expected):
+        self.cur_scope = []
+        self.assertEqual(self.configdef.get_name(), "/")
+        self.assertListEqual(list(expected.keys()), ["/"])
+        self._verify_scope(self.configdef, expected.get("/"), "/")
+        del self.cur_scope
+
     def verify_params(self, expected):
         actual = list(str(p) for p in self.configdef.get_params())
         self.assertListEqual(expected, actual)
-
-    def verify_scope(self, expected):
-        self.cur_scope = []
-        self._verify_scope(self.configdef, expected, "")
-        del self.cur_scope
 
     def _verify_scope(self, scope, expected, name=None):
         # verify the name
@@ -105,13 +107,11 @@ class TestConfigParser(unittest.TestCase):
 
         # verify the parameters
         expected_params = expected.get("params", [])
-        if expected_params:
-            params = list(str(p) for p in scope.get_params())
-            self.assertListEqual(expected_params, params)
+        params = list(str(p) for p in scope.get_params())
+        self.assertListEqual(expected_params, params)
 
         # Copy the list of expected children, so we can modify it as we traverse
         no_children = Util.Container()
-        wtf = getattr(no_children, "__reduce_ex__", None)
         expected_children = copy.copy(expected.get("children", no_children))
         # Match up actual children with expected children
         for actual_child in scope.get_children():
@@ -145,7 +145,7 @@ class TestConfigParser(unittest.TestCase):
             ":end",
             ":config FOO_MAX_BAZ",
             "    type INT",
-            "    title \"Config Path\"",
+            "    title \"Max Baz\"",
             "    default 10",
             "    description \"Max number of BAZ supported\"",
             ":end",
@@ -157,13 +157,13 @@ class TestConfigParser(unittest.TestCase):
             ":end",
             )
 
-        self.verify_scope(Util.Container(**{
+        self.verify_configdef(Util.Container(**{
             "/" : Util.Container(
                 params = [
-                "id=FOO_SUPPORT type=BOOL title=Enable default=True desc=The FOO module doesn't do much",
-                "id=FOO_CONFIG_PATH type=STRING title=Config Path=True desc=Path to FOO configuration file",
-                "id=FOO_MAX_BAZ type=INT title=Enable default=10 desc=Max number of BAZ supported",
-                "id=FOO_PRECISION type=FLOAT title=Enable default=0.5 desc=Precision to use"
+                "id=FOO_SUPPORT type=BOOL title=\"Enable\" default=True desc=\"The FOO module doesn't do much\"",
+                "id=FOO_CONFIG_PATH type=STRING title=\"Config Path\" default=\"foo/foo.cfg\" desc=\"Path to \"FOO\" configuration file\"",
+                "id=FOO_MAX_BAZ type=INT title=\"Max Baz\" default=10 desc=\"Max number of BAZ supported\"",
+                "id=FOO_PRECISION type=FLOAT title=\"Precision\" default=0.5 desc=\"Precision to use\""
                 ])
             }))
 
@@ -184,7 +184,7 @@ class TestConfigParser(unittest.TestCase):
             ":end"
             )
 
-        self.verify_scope(Util.Container(**{
+        self.verify_configdef(Util.Container(**{
             "/" : Util.Container(
                 params = [
                 "id=MY_DEFAULT_CONFIG1 type=BOOL",
@@ -203,7 +203,7 @@ class TestConfigParser(unittest.TestCase):
             ":config_f MY_FLOAT_CONFIG"
             )
 
-        self.verify_scope(Util.Container(**{
+        self.verify_configdef(Util.Container(**{
             "/" : Util.Container(
                 params = [
                 "id=MY_BOOL_CONFIG type=BOOL",
