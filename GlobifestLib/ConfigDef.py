@@ -133,6 +133,32 @@ class Parameter(object):
         """Returns the PARAM_TYPE"""
         return self.ptype
 
+class PrintObserver(object):
+    """This class can be used to print a Scope or ConfigDef"""
+
+    def __init__(self):
+        self.level = 0
+
+    def on_def_begin(self, filename):
+        """Handler for the beginning of a ConfigDef"""
+        self._print("File: '{}'".format(filename))
+
+    def on_param(self, param):
+        """Handle a parameter"""
+        self._print(param)
+
+    def on_scope_begin(self, title):
+        """Handle the beginning of a scope"""
+        self._print("{}:".format(title))
+        self.level += 1
+
+    def on_scope_end(self):
+        """Handle the end of a scope"""
+        self.level -= 1
+
+    def _print(self, text):
+        print("{}{}".format("  " * self.level, str(text)))
+
 class Scope(object):
     """Encapsulates a collection of Parameters and nested sub-Scopes"""
 
@@ -177,6 +203,18 @@ class Scope(object):
         """Return a list of parameters in this Scope"""
         return self.params
 
+    def walk(self, observer):
+        # pylint: disable=W0612
+        """Walk the tree and visit each node with the given observer"""
+        observer.on_scope_begin(self.scope_name)
+        for name, obj in self.children:
+            obj.walk(observer)
+
+        for p in self.params:
+            observer.on_param(p)
+
+        observer.on_scope_end()
+
 class ConfigDef(Scope):
     """Encapsulates a nested tree of Parameters"""
 
@@ -207,5 +245,10 @@ class ConfigDef(Scope):
         for node_name in nodes:
             scope = scope.add_child_scope(node_name)
         return scope
+
+    def walk(self, observer):
+        """Walk the tree and visit each node with the given observer"""
+        observer.on_def_begin(self.filename)
+        Scope.walk(self, observer)
 
 new = ConfigDef

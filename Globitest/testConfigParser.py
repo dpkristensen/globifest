@@ -60,7 +60,7 @@ class TestConfigParser(unittest.TestCase):
                 print(self.pipe.getvalue().rstrip())
             if hasattr(self, "configdef"):
                 print("PARSED CONFIGS:")
-                print(self.configdef)
+                print(self.configdef.walk(ConfigDef.PrintObserver()))
             else:
                 print("NO CONFIGS!")
             if hasattr(self, "cur_scope"):
