@@ -50,13 +50,19 @@ CONFIG_ELEMENTS = Util.Container(
     type="ptype"
     )
 
+# Map of menu element strings to Context.ctx member names in no particular order
+MENU_ELEMENTS = Util.Container(
+    description="mdesc"
+    )
+
 class Context(object):
     """
         Encapsulates contextual information for a nesting level
     """
 
     CTYPE = Util.create_enum(
-        "CONFIG"
+        "CONFIG",
+        "MENU"
         )
 
     def __init__(self, config_parser, prev_context=None, line_info=None, ctx=None):
@@ -96,12 +102,14 @@ class Context(object):
             return self.scope_path
 
         # Relative path
-        return self.prev_context.get_scope_path() + self.scope_path
+        return self.prev_context.get_scope_path() + self.scope_path + "/"
 
     def is_complete(self):
         """Return whether context has all required information"""
         if self.ctx.ctype == Context.CTYPE.CONFIG:
             self.validate_config()
+        elif self.ctx.ctype == Context.CTYPE.MENU:
+            pass # Nothing to do
         else:
             assert self.ctx.ctype is not None
             return False
@@ -122,6 +130,8 @@ class Context(object):
         """Process a parameter in context"""
         if self.ctx.ctype == Context.CTYPE.CONFIG:
             self.process_param_config(name, value)
+        elif self.ctx.ctype == Context.CTYPE.MENU:
+            self.process_param_menu(name, value)
 
     def process_param_config(self, name, value):
         """Process a config parameter"""
@@ -151,6 +161,17 @@ class Context(object):
             else:
                 # No additional validation required for other elements
                 self.ctx[CONFIG_ELEMENTS[name]] = value
+        else:
+            self.config_parser.debug("not found: {}".format(name))
+
+    def process_param_menu(self, name, value):
+        """Process a menu parameter"""
+        if not value:
+            self.config_parser.log_error("Bad parameter: {}".format(value))
+
+        if self.is_unique_element(MENU_ELEMENTS, name):
+            # No additional validation required for elements
+            self.ctx[MENU_ELEMENTS[name]] = value
         else:
             self.config_parser.debug("not found: {}".format(name))
 
@@ -201,6 +222,11 @@ class ConfigParser(Log.Debuggable):
         with Log.CaptureStdout(self, "CONFIG_RE:"):
             self.config_re = re.compile(
                 "config(_[bsif])?[ \t]+(" + identifier_name + ")$",
+                regex_flags
+                )
+        with Log.CaptureStdout(self, "MENU_RE:"):
+            self.menu_re = re.compile(
+                "menu[ \t]+([a-zA-Z 0-9_-]{1,20})$",
                 regex_flags
                 )
 
@@ -270,6 +296,8 @@ class ConfigParser(Log.Debuggable):
         ctype = cur_context.get_ctype()
         if ctype == Context.CTYPE.CONFIG:
             self._config_end(cur_context)
+        elif ctype == Context.CTYPE.MENU:
+            self._menu_end(cur_context)
         else:
             assert ctype is not None
 
@@ -282,7 +310,7 @@ class ConfigParser(Log.Debuggable):
             Add the config to the def
         """
         scope_path = context.get_scope_path()
-        self.debug("{} @ {}".format(context.ctx.id, scope_path))
+        self.debug("  {} @ {}".format(context.ctx.id, scope_path))
         scope = self.configdef.get_scope(scope_path)
         scope.add_param(ConfigDef.Parameter(
             pid=context.ctx.id,
@@ -296,7 +324,7 @@ class ConfigParser(Log.Debuggable):
         """
             Start a config block (for a single setting)
 
-            Push a new context onto the stack with TYPE.CONFIG.  Default settings for the block are
+            Push a new context onto the stack with CTYPE.CONFIG.  Default settings for the block are
             set here.  For one-line "quick" settings, end the block immediately.
         """
         ptype = None
@@ -313,7 +341,7 @@ class ConfigParser(Log.Debuggable):
 
         cur_context = self.context_stack[-1]
         ctype = cur_context.get_ctype()
-        if ctype is not None:
+        if ctype not in [None, Context.CTYPE.MENU]:
             self.log_error("config is not allowed in this scope")
 
         new_context = Context(
@@ -336,6 +364,42 @@ class ConfigParser(Log.Debuggable):
         if quick_type != "":
             self._block_end()
 
+    def _menu_end(self, context):
+        """
+            End a menu block
+
+            Add the config to the def
+        """
+        if context.ctx.mdesc is not None:
+            scope_path = context.get_scope_path()
+            scope = self.configdef.get_scope(scope_path)
+            scope.set_description(context.ctx.mdesc)
+
+    def _menu_start(self, name):
+        """
+            Start a menu block (modifies the scope of contained menus and settings)
+
+            Push a new context onto the stack with CTYPE.MENU.
+        """
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [None, Context.CTYPE.MENU]:
+            self.log_error("menu is not allowed in this scope")
+
+        new_context = Context(
+            config_parser=self,
+            prev_context=cur_context,
+            line_info=self.line_info,
+            ctx=Util.Container(
+                ctype=Context.CTYPE.MENU,
+                mdesc=None
+                )
+            )
+        # The name is a relative path
+        new_context.scope_path = name
+        self.debug("  {}".format(new_context.get_scope_path()))
+        self.context_stack.append(new_context)
+
     def _parse_directive(self, text):
         """
             Parse directive text
@@ -348,6 +412,9 @@ class ConfigParser(Log.Debuggable):
                 qtype = m[1][1]
             self.debug("CONFIG({}): {}".format(qtype, m[2]))
             self._config_start(qtype, m[2].lstrip())
+        elif m.is_fullmatch(self.menu_re):
+            self.debug("MENU: {}".format(m[1]))
+            self._menu_start(m[1])
         elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._block_end()

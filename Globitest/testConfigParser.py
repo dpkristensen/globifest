@@ -60,7 +60,7 @@ class TestConfigParser(unittest.TestCase):
                 print(self.pipe.getvalue().rstrip())
             if hasattr(self, "configdef"):
                 print("PARSED CONFIGS:")
-                print(self.configdef.walk(ConfigDef.PrintObserver()))
+                self.configdef.walk(ConfigDef.PrintObserver())
             else:
                 print("NO CONFIGS!")
             if hasattr(self, "cur_scope"):
@@ -105,7 +105,11 @@ class TestConfigParser(unittest.TestCase):
         # verify the name
         self.cur_scope.append(name or scope.get_name())
 
-        # verify the parameters
+        # Verify the description
+        expected_desc = expected.get("description", "")
+        self.assertEqual(expected_desc, scope.get_description())
+
+        # Verify the parameters
         expected_params = expected.get("params", [])
         params = list(str(p) for p in scope.get_params())
         self.assertListEqual(expected_params, params)
@@ -165,6 +169,79 @@ class TestConfigParser(unittest.TestCase):
                 "id=FOO_MAX_BAZ type=INT title=\"Max Baz\" default=10 desc=\"Max number of BAZ supported\"",
                 "id=FOO_PRECISION type=FLOAT title=\"Precision\" default=0.5 desc=\"Precision to use\""
                 ])
+            }))
+
+    def test_menu_block(self):
+        self.create_parser()
+        self.parse_lines(
+            ":menu M1",
+            "    description Menu 1",
+            "    :config_b M1_1",
+            "    :config TOP_1",
+            "        type INT",
+            "        menu /", # Absolute path overrides menu
+            "    :end",
+            ":end",
+            ":menu M2",
+            "    :config_b M2_1",
+            "    :config M2_A_1",
+            "        type BOOL",
+            "        menu A", # Relative path appends to path
+            "    :end",
+            "    description Menu 2", # Does not have to be before configs
+            "    :menu B", # Nested menu context
+            "        description Menu 2-B",
+            "        :config_b M2_B_1",
+            "    :end",
+            "    :config M2_B_C_1",
+            "        type BOOL",
+            "        menu B/C", # Relative path to existing menu
+            "    :end",
+            "    :menu B", # Add more stuff to B
+            "        description    Moar stuff for B", # Append
+            "        :config_i M2_B_2",
+            "    :end",
+            "    :config M1_2",
+            "        type INT",
+            "        menu /M1", # Absolute path to different scope
+            "    :end",
+            ":end"
+            )
+
+        self.verify_configdef(Util.Container(**{
+            "/" : Util.Container(
+                children = Util.Container(**{
+                    "M1" : Util.Container(
+                        description = "Menu 1",
+                        params = [
+                            "id=M1_1 type=BOOL",
+                            "id=M1_2 type=INT"
+                            ]
+                        ),
+                    "M2" : Util.Container(
+                        description = "Menu 2",
+                        params = [ "id=M2_1 type=BOOL" ],
+                        children = Util.Container(**{
+                            "A" : Util.Container(
+                                params = [ "id=M2_A_1 type=BOOL" ]
+                                ),
+                            "B" : Util.Container(
+                                description = "Menu 2-B\n\nMoar stuff for B",
+                                params = [
+                                    "id=M2_B_1 type=BOOL",
+                                    "id=M2_B_2 type=INT"
+                                    ],
+                                children = Util.Container(**{
+                                    "C" : Util.Container(
+                                        params = [ "id=M2_B_C_1 type=BOOL" ]
+                                        )
+                                    })
+                                )
+                            })
+                        )
+                    }),
+                params = [ "id=TOP_1 type=INT" ]
+                )
             }))
 
     def test_menu_param(self):
