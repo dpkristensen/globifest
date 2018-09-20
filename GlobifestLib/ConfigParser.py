@@ -212,7 +212,7 @@ class ConfigParser(Log.Debuggable):
 
         # line regexes, in order of matching
         with Log.CaptureStdout(self, "COMMENT_RE:"):
-            self.comment_re = re.compile(";.*", regex_flags)
+            self.comment_re = re.compile("[;#].*", regex_flags)
         with Log.CaptureStdout(self, "DIRECTIVE_RE:"):
             self.directive_re = re.compile(":.*", regex_flags)
 

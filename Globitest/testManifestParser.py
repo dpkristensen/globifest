@@ -105,6 +105,9 @@ class TestManifestParser(unittest.TestCase):
     def test_basic_manifest(self):
         self.create_parser()
         self.parse_lines(
+            "; This is a comment",
+            "# This is also a comment",
+            "   ; This comment is indented",
             ":sources",
             "   abc_module.c"
             )

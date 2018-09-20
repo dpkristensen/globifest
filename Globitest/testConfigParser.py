@@ -135,6 +135,9 @@ class TestConfigParser(unittest.TestCase):
     def test_full(self):
         self.create_parser()
         self.parse_lines(
+            "; This is a comment",
+            "# This is also a comment",
+            "   ; This comment is indented",
             ":config FOO_SUPPORT",
             "    type BOOL",
             "    title \"Enable\"",
