@@ -127,20 +127,28 @@ class TestConfigDef(unittest.TestCase):
 
         c.add_child_scope("scope_a").add_param(self.pa)
         c.add_child_scope("scope_b").add_param(self.pb)
+        c.set_description("top")
         scope_c = c.add_child_scope("scope_c")
         scope_c.add_param(self.pc)
         scope_abc = scope_c.add_child_scope("scope_abc")
         scope_abc.add_param(self.pa)
         scope_abc.add_param(self.pb)
         scope_abc.add_param(self.pc)
+        scope_abc.set_description("123")
 
+        self.assertEqual(c.get_description(), "top")
         self.assertEqual(c.get_params(), [])
+        self.assertEqual(c.get_children().scope_a.get_description(), "")
         self.assertEqual(c.get_children().scope_a.get_name(), "scope_a")
         self.assertEqual(c.get_children().scope_a.get_params(), [self.pa])
         self.assertEqual(c.get_children().scope_b.get_name(), "scope_b")
         self.assertEqual(c.get_children().scope_b.get_params(), [self.pb])
         self.assertEqual(c.get_children().scope_c.get_name(), "scope_c")
         self.assertEqual(c.get_children().scope_c.get_params(), [self.pc])
+        self.assertEqual(
+            c.get_children().scope_c.get_children().scope_abc.get_description(),
+            "123"
+            )
         self.assertEqual(
             c.get_children().scope_c.get_children().scope_abc.get_name(),
             "scope_abc"
@@ -165,8 +173,14 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(search_scope.get_params(), [self.pc])
 
         search_scope = c.get_scope("/scope_c/scope_abc")
+        self.assertEqual(search_scope.get_description(), "123")
         self.assertEqual(search_scope.get_name(), "scope_abc")
         self.assertEqual(search_scope.get_params(), [self.pa, self.pb, self.pc])
+
+        c.get_children().scope_c.get_children().scope_abc.set_description("456")
+        self.assertEqual(search_scope.get_description(), "123\n\n456")
+        search_scope.set_description("789")
+        self.assertEqual(search_scope.get_description(), "123\n\n456\n\n789")
 
     def test_validate_type(self):
         test_tbl = [

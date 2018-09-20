@@ -147,10 +147,17 @@ class PrintObserver(object):
         """Handle a parameter"""
         self._print(param)
 
-    def on_scope_begin(self, title):
+    def on_scope_begin(self, title, description):
         """Handle the beginning of a scope"""
         self._print("{}:".format(title))
         self.level += 1
+        if description is not None:
+            self._print("<description>={")
+            self.level += 1
+            for line in description.split("\n"):
+                self._print(line)
+            self._print("}")
+            self.level -= 1
 
     def on_scope_end(self):
         """Handle the end of a scope"""
@@ -164,6 +171,7 @@ class Scope(object):
 
     def __init__(self, scope_name, parent_scope):
         self.children = Util.Container()
+        self.description = None
         self.params = list()
         self.parent = parent_scope
         self.scope_name = scope_name
@@ -195,6 +203,10 @@ class Scope(object):
         """Return a reference to the child Scope container"""
         return self.children
 
+    def get_description(self):
+        """Return the description of this Scope"""
+        return self.description or ""
+
     def get_name(self):
         """Returns the name of the scope"""
         return self.scope_name
@@ -203,10 +215,17 @@ class Scope(object):
         """Return a list of parameters in this Scope"""
         return self.params
 
+    def set_description(self, text):
+        """Set or append to the description for this Scope"""
+        if self.description is None:
+            self.description = text
+        else:
+            self.description += "\n\n" + text
+
     def walk(self, observer):
         # pylint: disable=W0612
         """Walk the tree and visit each node with the given observer"""
-        observer.on_scope_begin(self.scope_name)
+        observer.on_scope_begin(self.scope_name, self.description)
         for name, obj in self.children:
             obj.walk(observer)
 
