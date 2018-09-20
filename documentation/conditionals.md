@@ -1,6 +1,6 @@
-# Globifest - Configuration
+# Conditional Expressions
 
-Configuration files describe what options are available to configure your project.
+TODO
 
 ## 0 Legal Stuff
 
