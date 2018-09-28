@@ -1,6 +1,6 @@
-# Globifest - Configuration
+# Globifest - Definitions
 
-Configuration files store the selected options to use when building your project.
+Definition files describe what options are available to configure your project.
 
 ## 0 Legal Stuff
 
@@ -9,4 +9,4 @@ Please read the Software License ([LICENSE.md](../LICENSE.md)) and Contributor L
 ## 1 TODO
 
 TODO
-extension: *.cfg, *.gconf
+extension: *.dfg, *.gdef

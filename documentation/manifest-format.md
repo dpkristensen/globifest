@@ -14,6 +14,8 @@ Please read the Software License ([LICENSE.md](../LICENSE.md)) and Contributor L
 
 Manifest files are parsed in a mostly line-oriented fashion and should be encoded as ASCII.  Carriage Return (ASCII 13) and/or Line Feed (ASCII 10) both indicate a new line (so the format is agnostic to Unix or DOS-style line endings).
 
+It is recommended that the filename end in .mfg or .gman.
+
 ### 1.1 Comments
 
 All lines leading with a Semicolon (ASCII 59) or Hash (ASCII 35) are not processed by the parser.  These can be used to communicate information to Humans, Software, or Robots reading the file, but should be ignored by the build system.
