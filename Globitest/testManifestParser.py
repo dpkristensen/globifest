@@ -97,7 +97,7 @@ class TestManifestParser(unittest.TestCase):
         self.reader._read_file_obj(file)
 
     def verify_manifest(self, expected):
-        diff = expected._get_diff(self.manifest.get_output())
+        diff = expected.get_diff(self.manifest.get_output())
         if diff != Util.Container():
             print("UNMATCHED FIELDS:{}\n".format(diff))
             self.fail()

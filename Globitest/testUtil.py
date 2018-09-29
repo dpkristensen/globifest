@@ -47,7 +47,7 @@ class TestUtil(unittest.TestCase):
             b = 2,
             a = 1
             )
-        self.assertEqual(container1._get_diff(container2), Util.Container())
+        self.assertEqual(container1.get_diff(container2), Util.Container())
 
     def test_container2(self):
         container1 = Util.Container(
@@ -58,7 +58,7 @@ class TestUtil(unittest.TestCase):
             b = 2,
             a = [3, 2, 1]
             )
-        self.assertEqual(container1._get_diff(container2), Util.Container())
+        self.assertEqual(container1.get_diff(container2), Util.Container())
 
     def test_container3(self):
         container1 = Util.Container(
@@ -72,7 +72,7 @@ class TestUtil(unittest.TestCase):
         result = Util.Container(
             a = [4]
             )
-        self.assertEqual(container1._get_diff(container2), result)
+        self.assertEqual(container1.get_diff(container2), result)
 
     def test_container4(self):
         container1 = Util.Container(
@@ -86,7 +86,7 @@ class TestUtil(unittest.TestCase):
         result = Util.Container(
             a = [4]
             )
-        self.assertEqual(container1._get_diff(container2), result)
+        self.assertEqual(container1.get_diff(container2), result)
 
     def test_container5(self):
         container1 = Util.Container(
@@ -101,7 +101,7 @@ class TestUtil(unittest.TestCase):
             a = 1,
             c = 3
             )
-        self.assertEqual(container1._get_diff(container2), result)
+        self.assertEqual(container1.get_diff(container2), result)
 
     def test_container6(self):
         container1 = Util.Container(
@@ -116,7 +116,22 @@ class TestUtil(unittest.TestCase):
         result = Util.Container(
             c = [5, 6]
             )
-        self.assertEqual(container1._get_diff(container2), result)
+        self.assertEqual(container1.get_diff(container2), result)
+
+    def test_container7(self):
+        container1 = Util.Container(
+            a = 1,
+            b = 2
+            )
+        container2 = Util.Container(
+            a = 2,
+            b = 2
+            )
+        result = Util.Container({
+            "a (A)" : 1,
+            "a (B)" : 2
+            })
+        self.assertEqual(container1.get_diff(container2), result)
 
     def test_container_copy(self):
         original = Util.Container(

@@ -135,7 +135,7 @@ class Container(dict):
 
         return outstr
 
-    def _get_diff(self, other):
+    def get_diff(self, other):
         """
             Return a containerized diff between this and the other container
 
@@ -157,6 +157,10 @@ class Container(dict):
                 out_dict[k] = o1 + o2
                 if not out_dict[k]:
                     del out_dict[k]
+            elif v != out_dict.get(k):
+                out_dict[k + " (A)"] = out_dict[k]
+                out_dict[k + " (B)"] = v
+                del out_dict[k]
             else:
                 # Remove any top-level non-iterable element
                 del out_dict[k]
