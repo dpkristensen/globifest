@@ -40,6 +40,7 @@ __all__ = [
     "testBoundedStatefulParser",
     "testConfigDef",
     "testConfigParser",
+    "testConfigProject",
     "testConfigSet",
     "testLineInfo",
     "testLineReader",

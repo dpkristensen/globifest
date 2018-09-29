@@ -54,6 +54,7 @@ LEVEL = Util.create_enum(
 ERROR = Util.create_enum(
     "BUILD",
     "INPUT",
+    "RUNTIME",
 
     "COUNT"
     )

@@ -40,6 +40,7 @@ __all__ = [
     "Builder",
     "ConfigDef",
     "ConfigParser",
+    "ConfigProject",
     "ConfigSet",
     "LineInfo",
     "LineReader",
