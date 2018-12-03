@@ -37,7 +37,7 @@
 import re
 
 from GlobifestLib import \
-    ConfigDef, \
+    Config, \
     Log, \
     Matcher, \
     Util
@@ -148,14 +148,14 @@ class Context(object):
 
         if self.is_unique_element(CONFIG_ELEMENTS, name):
             if name == "type":
-                self.ctx.ptype = ConfigDef.validate_type(value)
+                self.ctx.ptype = Config.validate_type(value)
                 if self.ctx.ptype is None:
                     self.config_parser.log_error("Invalid type: {}".format(value))
             elif name == "default":
                 if self.ctx.ptype is None:
                     self.config_parser.log_error("default must appear after type")
 
-                self.ctx.default = ConfigDef.validate_value(self.ctx.ptype, value)
+                self.ctx.default = Config.validate_value(self.ctx.ptype, value)
                 if self.ctx.default is None:
                     self.config_parser.log_error("Invalid value: {}".format(value))
             else:
@@ -194,10 +194,10 @@ class DefinitionParser(Log.Debuggable):
         Encapsulates logic to parse a configuration file
     """
 
-    def __init__(self, configdef, debug_mode=False):
+    def __init__(self, config, debug_mode=False):
         Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
-        self.configdef = configdef
+        self.config = config
         self.line_info = None
 
         # Always has a context
@@ -235,8 +235,8 @@ class DefinitionParser(Log.Debuggable):
             self.param_re = re.compile("(" + identifier_name + ")[ \t]+(.+)", regex_flags)
 
     def get_target(self):
-        """Returns the target ConfigDef which is being parsed"""
-        return self.configdef
+        """Returns the target Config which is being parsed"""
+        return self.config
 
     def log_error(self, err_text):
         """
@@ -311,8 +311,8 @@ class DefinitionParser(Log.Debuggable):
         """
         scope_path = context.get_scope_path()
         self.debug("  {} @ {}".format(context.ctx.id, scope_path))
-        scope = self.configdef.get_scope(scope_path)
-        scope.add_param(ConfigDef.Parameter(
+        scope = self.config.get_scope(scope_path)
+        scope.add_param(Config.Parameter(
             pid=context.ctx.id,
             ptitle=context.ctx.title,
             ptype=context.ctx.ptype,
@@ -329,13 +329,13 @@ class DefinitionParser(Log.Debuggable):
         """
         ptype = None
         if quick_type == "b":
-            ptype = ConfigDef.PARAM_TYPE.BOOL
+            ptype = Config.PARAM_TYPE.BOOL
         elif quick_type == "s":
-            ptype = ConfigDef.PARAM_TYPE.STRING
+            ptype = Config.PARAM_TYPE.STRING
         elif quick_type == "i":
-            ptype = ConfigDef.PARAM_TYPE.INT
+            ptype = Config.PARAM_TYPE.INT
         elif quick_type == "f":
-            ptype = ConfigDef.PARAM_TYPE.FLOAT
+            ptype = Config.PARAM_TYPE.FLOAT
         elif quick_type != "":
             self.log_error("Malformed quick-type suffix: {}".format(quick_type))
 
@@ -372,7 +372,7 @@ class DefinitionParser(Log.Debuggable):
         """
         if context.ctx.mdesc is not None:
             scope_path = context.get_scope_path()
-            scope = self.configdef.get_scope(scope_path)
+            scope = self.config.get_scope(scope_path)
             scope.set_description(context.ctx.mdesc)
 
     def _menu_start(self, name):

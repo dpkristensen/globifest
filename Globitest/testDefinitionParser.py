@@ -36,7 +36,7 @@ import io
 import sys
 import unittest
 
-from GlobifestLib import ConfigDef, DefinitionParser, LineReader, Log, Util
+from GlobifestLib import Config, DefinitionParser, LineReader, Log, Util
 
 from Globitest import Helpers
 
@@ -58,9 +58,9 @@ class TestDefinitionParser(unittest.TestCase):
             if hasattr(self, "pipe") and self.pipe:
                 print("ERRORS:")
                 print(self.pipe.getvalue().rstrip())
-            if hasattr(self, "configdef"):
+            if hasattr(self, "config"):
                 print("PARSED CONFIGS:")
-                self.configdef.walk(ConfigDef.PrintObserver())
+                self.config.walk(Config.PrintObserver())
             else:
                 print("NO CONFIGS!")
             if hasattr(self, "cur_scope"):
@@ -73,15 +73,15 @@ class TestDefinitionParser(unittest.TestCase):
             del self.reader
         if hasattr(self, "parser"):
             del self.parser
-        if hasattr(self, "configdef"):
-            del self.configdef
+        if hasattr(self, "config"):
+            del self.config
         if hasattr(self, "pipe"):
             del self.pipe
 
     def create_parser(self):
-        # The ConfigDef and reader are not under test, but simple enough to use directly
-        self.configdef = ConfigDef.new()
-        self.parser = DefinitionParser.new(self.configdef, debug_mode=True)
+        # The Config and reader are not under test, but simple enough to use directly
+        self.config = Config.new()
+        self.parser = DefinitionParser.new(self.config, debug_mode=True)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser
         self.reader = LineReader.new(self.parser)
@@ -90,15 +90,15 @@ class TestDefinitionParser(unittest.TestCase):
         file = Helpers.new_file("\n".join(args))
         self.reader._read_file_obj(file)
 
-    def verify_configdef(self, expected):
+    def verify_config(self, expected):
         self.cur_scope = []
-        self.assertEqual(self.configdef.get_name(), "/")
+        self.assertEqual(self.config.get_name(), "/")
         self.assertListEqual(list(expected.keys()), ["/"])
-        self._verify_scope(self.configdef, expected.get("/"), "/")
+        self._verify_scope(self.config, expected.get("/"), "/")
         del self.cur_scope
 
     def verify_params(self, expected):
-        actual = list(str(p) for p in self.configdef.get_params())
+        actual = list(str(p) for p in self.config.get_params())
         self.assertListEqual(expected, actual)
 
     def _verify_scope(self, scope, expected, name=None):
@@ -164,7 +164,7 @@ class TestDefinitionParser(unittest.TestCase):
             ":end",
             )
 
-        self.verify_configdef(Util.Container(**{
+        self.verify_config(Util.Container(**{
             "/" : Util.Container(
                 params = [
                 "id=FOO_SUPPORT type=BOOL title=\"Enable\" default=True desc=\"The FOO module doesn't do much\"",
@@ -211,7 +211,7 @@ class TestDefinitionParser(unittest.TestCase):
             ":end"
             )
 
-        self.verify_configdef(Util.Container(**{
+        self.verify_config(Util.Container(**{
             "/" : Util.Container(
                 children = Util.Container(**{
                     "M1" : Util.Container(
@@ -270,7 +270,7 @@ class TestDefinitionParser(unittest.TestCase):
             ":config_b TOP_3"
             )
 
-        self.verify_configdef(Util.Container(**{
+        self.verify_config(Util.Container(**{
             "/" : Util.Container(
                 children = Util.Container(**{
                     "A" : Util.Container(
@@ -310,7 +310,7 @@ class TestDefinitionParser(unittest.TestCase):
             ":end"
             )
 
-        self.verify_configdef(Util.Container(**{
+        self.verify_config(Util.Container(**{
             "/" : Util.Container(
                 params = [
                 "id=MY_DEFAULT_CONFIG1 type=BOOL",
@@ -329,7 +329,7 @@ class TestDefinitionParser(unittest.TestCase):
             ":config_f MY_FLOAT_CONFIG"
             )
 
-        self.verify_configdef(Util.Container(**{
+        self.verify_config(Util.Container(**{
             "/" : Util.Container(
                 params = [
                 "id=MY_BOOL_CONFIG type=BOOL",

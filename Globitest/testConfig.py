@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testConfigDef.py - Tests for ConfigDef module
+    globifest/globitest/testConfig.py - Tests for Config module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -33,42 +33,42 @@
 
 import unittest
 
-from GlobifestLib import ConfigDef, Util
+from GlobifestLib import Config, Util
 
-class TestConfigDef(unittest.TestCase):
+class TestConfig(unittest.TestCase):
 
     def setUp(self):
-        self.pa = ConfigDef.Parameter(
+        self.pa = Config.Parameter(
             pid="IDENTIFIER_A",
             ptitle="Value A",
-            ptype=ConfigDef.PARAM_TYPE.BOOL,
+            ptype=Config.PARAM_TYPE.BOOL,
             pdesc="Description of A",
             pdefault="FALSE"
             )
-        self.pb = ConfigDef.Parameter(
+        self.pb = Config.Parameter(
             pid="IDENTIFIER_B",
             ptitle="Value B",
-            ptype=ConfigDef.PARAM_TYPE.STRING,
+            ptype=Config.PARAM_TYPE.STRING,
             # Empty description
             pdefault="Default Text"
             )
-        self.pc = ConfigDef.Parameter(
+        self.pc = Config.Parameter(
             pid="IDENTIFIER_C",
             ptitle="Value C",
-            ptype=ConfigDef.PARAM_TYPE.INT,
+            ptype=Config.PARAM_TYPE.INT,
             pdesc="Description of C"
             # No default
             )
-        self.pd = ConfigDef.Parameter(
+        self.pd = Config.Parameter(
             pid="IDENTIFIER_D",
             ptitle="Value D",
-            ptype=ConfigDef.PARAM_TYPE.FLOAT,
+            ptype=Config.PARAM_TYPE.FLOAT,
             pdesc="Description of D"
             # No default
             )
 
     def test_create_empty_set(self):
-        c = ConfigDef.new()
+        c = Config.new()
         self.assertEqual(c.get_children(), Util.Container())
         self.assertEqual(c.get_filename(), "")
         self.assertEqual(c.get_name(), "/")
@@ -79,32 +79,32 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(self.pa.get_description(), "Description of A")
         self.assertEqual(self.pa.get_identifier(), "IDENTIFIER_A")
         self.assertEqual(self.pa.get_title(), "Value A")
-        self.assertEqual(self.pa.get_type(), ConfigDef.PARAM_TYPE.BOOL)
+        self.assertEqual(self.pa.get_type(), Config.PARAM_TYPE.BOOL)
         self.assertEqual(str(self.pa), "id=IDENTIFIER_A type=BOOL title=Value A default=FALSE desc=Description of A")
 
         self.assertEqual(self.pb.get_default_value(), "Default Text")
         self.assertEqual(self.pb.get_description(), "")
         self.assertEqual(self.pb.get_identifier(), "IDENTIFIER_B")
         self.assertEqual(self.pb.get_title(), "Value B")
-        self.assertEqual(self.pb.get_type(), ConfigDef.PARAM_TYPE.STRING)
+        self.assertEqual(self.pb.get_type(), Config.PARAM_TYPE.STRING)
         self.assertEqual(str(self.pb), "id=IDENTIFIER_B type=STRING title=Value B default=Default Text")
 
         self.assertEqual(self.pc.get_default_value(), None)
         self.assertEqual(self.pc.get_description(), "Description of C")
         self.assertEqual(self.pc.get_identifier(), "IDENTIFIER_C")
         self.assertEqual(self.pc.get_title(), "Value C")
-        self.assertEqual(self.pc.get_type(), ConfigDef.PARAM_TYPE.INT)
+        self.assertEqual(self.pc.get_type(), Config.PARAM_TYPE.INT)
         self.assertEqual(str(self.pc), "id=IDENTIFIER_C type=INT title=Value C desc=Description of C")
 
         self.assertEqual(self.pd.get_default_value(), None)
         self.assertEqual(self.pd.get_description(), "Description of D")
         self.assertEqual(self.pd.get_identifier(), "IDENTIFIER_D")
         self.assertEqual(self.pd.get_title(), "Value D")
-        self.assertEqual(self.pd.get_type(), ConfigDef.PARAM_TYPE.FLOAT)
+        self.assertEqual(self.pd.get_type(), Config.PARAM_TYPE.FLOAT)
         self.assertEqual(str(self.pd), "id=IDENTIFIER_D type=FLOAT title=Value D desc=Description of D")
 
     def test_flat_config(self):
-        c = ConfigDef.new(filename="test.def")
+        c = Config.new(filename="test.def")
 
         self.assertEqual(self.pa, c.add_param(self.pa))
         self.assertEqual(self.pb, c.add_param(self.pb))
@@ -123,7 +123,7 @@ class TestConfigDef(unittest.TestCase):
         self.assertEqual(search_scope.get_params(), [self.pa, self.pb, self.pc])
 
     def test_nested_config(self):
-        c = ConfigDef.new()
+        c = Config.new()
 
         c.add_child_scope("scope_a").add_param(self.pa)
         c.add_child_scope("scope_b").add_param(self.pb)
@@ -184,21 +184,21 @@ class TestConfigDef(unittest.TestCase):
 
     def test_validate_type(self):
         test_tbl = [
-            ("BOOL", ConfigDef.PARAM_TYPE.BOOL),
-            ("bool", ConfigDef.PARAM_TYPE.BOOL),
-            ("BoOl", ConfigDef.PARAM_TYPE.BOOL),
+            ("BOOL", Config.PARAM_TYPE.BOOL),
+            ("bool", Config.PARAM_TYPE.BOOL),
+            ("BoOl", Config.PARAM_TYPE.BOOL),
 
-            ("STRING", ConfigDef.PARAM_TYPE.STRING),
-            ("string", ConfigDef.PARAM_TYPE.STRING),
-            ("StrIng", ConfigDef.PARAM_TYPE.STRING),
+            ("STRING", Config.PARAM_TYPE.STRING),
+            ("string", Config.PARAM_TYPE.STRING),
+            ("StrIng", Config.PARAM_TYPE.STRING),
 
-            ("INT", ConfigDef.PARAM_TYPE.INT),
-            ("int", ConfigDef.PARAM_TYPE.INT),
-            ("iNt", ConfigDef.PARAM_TYPE.INT),
+            ("INT", Config.PARAM_TYPE.INT),
+            ("int", Config.PARAM_TYPE.INT),
+            ("iNt", Config.PARAM_TYPE.INT),
 
-            ("FLOAT", ConfigDef.PARAM_TYPE.FLOAT),
-            ("float", ConfigDef.PARAM_TYPE.FLOAT),
-            ("flOAt", ConfigDef.PARAM_TYPE.FLOAT),
+            ("FLOAT", Config.PARAM_TYPE.FLOAT),
+            ("float", Config.PARAM_TYPE.FLOAT),
+            ("flOAt", Config.PARAM_TYPE.FLOAT),
 
             ("Bol",     None),
             ("nt",      None),
@@ -209,7 +209,7 @@ class TestConfigDef(unittest.TestCase):
 
         for t in test_tbl:
             self.assertEqual(
-                ConfigDef.validate_type(t[0]),
+                Config.validate_type(t[0]),
                 t[1],
                 msg="{} -> {}".format(t[0], t[1])
                 )
@@ -233,7 +233,7 @@ class TestConfigDef(unittest.TestCase):
 
         for t in test_tbl:
             self.assertEqual(
-                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.BOOL, t[0]),
+                Config.validate_value(Config.PARAM_TYPE.BOOL, t[0]),
                 t[1],
                 msg="'{}' -> {}".format(t[0], t[1])
                 )
@@ -255,7 +255,7 @@ class TestConfigDef(unittest.TestCase):
 
         for t in test_tbl:
             self.assertEqual(
-                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.FLOAT, t[0]),
+                Config.validate_value(Config.PARAM_TYPE.FLOAT, t[0]),
                 t[1],
                 msg="'{}' -> {}".format(t[0], t[1])
                 )
@@ -276,7 +276,7 @@ class TestConfigDef(unittest.TestCase):
 
         for t in test_tbl:
             self.assertEqual(
-                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.INT, t[0]),
+                Config.validate_value(Config.PARAM_TYPE.INT, t[0]),
                 t[1],
                 msg="'{}' -> {}".format(t[0], t[1])
                 )
@@ -291,7 +291,7 @@ class TestConfigDef(unittest.TestCase):
 
         for t in test_tbl:
             self.assertEqual(
-                ConfigDef.validate_value(ConfigDef.PARAM_TYPE.STRING, t[0]),
+                Config.validate_value(Config.PARAM_TYPE.STRING, t[0]),
                 t[1],
                 msg="'{}' -> {}".format(t[0], t[1])
                 )
