@@ -178,4 +178,6 @@ def run_cmd():
     return 0
 
 if __name__ == "__main__":
-    exit(run_cmd())
+    #exit(run_cmd())
+    print("Not yet implemented")
+    exit(-1)
