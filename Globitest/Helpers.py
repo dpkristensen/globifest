@@ -32,7 +32,7 @@
 """
 
 import io
-from GlobifestLib import ConfigSet, Manifest
+from GlobifestLib import Settings, Manifest
 
 TEST_FNAME = "test_manifest.glst"
 
@@ -40,9 +40,9 @@ def new_manifest():
     """The manifest is basic enough it does not need a test double"""
     return Manifest.new(TEST_FNAME)
 
-def new_configset(configs):
-    """Return a ConfigSet with the given configuration"""
-    return ConfigSet.new(configs)
+def new_settings(configs):
+    """Return a Settings with the given configuration"""
+    return Settings.new(configs)
 
 class DummyManifestParser:
     """Test dummy for a manifest parser"""

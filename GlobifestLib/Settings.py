@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/ConfigSet.py - globifest Configuration set
+    globifest/Settings.py - globifest build settings
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -103,10 +103,10 @@ class IdentToken(TokenBase):
     TOKEN_TYPE = "identifier"
     STRING_CONFIG_RE = re.compile("^\"(.*)\"$")
 
-    def __init__(self, ident, configset):
+    def __init__(self, ident, settings):
         self.ident = ident
-        if configset.has_value(ident):
-            lookup_val = configset.get_value(ident)
+        if settings.has_value(ident):
+            lookup_val = settings.get_value(ident)
             if lookup_val is None:
                 Log.E("{} has no value".format(ident))
 
@@ -408,7 +408,7 @@ RESERVED_IDENT_MAP = Util.Container(
 
 assert RESERVED_IDENT.COUNT == len(RESERVED_IDENT_MAP)
 
-class ConfigSet(Log.Debuggable):
+class Settings(Log.Debuggable):
     """
         Encapsulates a set of configuration values
     """
@@ -589,4 +589,4 @@ class ConfigSet(Log.Debuggable):
         else:
             Log.E("Expression of type '{}' is not convertible to bool".format(tok.TOKEN_TYPE))
 
-new = ConfigSet
+new = Settings

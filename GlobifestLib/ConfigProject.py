@@ -35,7 +35,7 @@ from GlobifestLib import Log, Util
 
 class ConfigProject(object):
     """
-        Encapsulates a matrix of ConfigSets which define project-specific configuration settings.
+        Encapsulates a matrix of Settings which define project-specific configuration settings.
 
         The project has one or more layers, and each layer has one or more variants.  Layers are
         configs structured in priority order, with higher priority layers overriding settings

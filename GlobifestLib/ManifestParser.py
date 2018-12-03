@@ -168,7 +168,7 @@ class Context(object):
         # Condition expression is completely parsed
         expr = self.context_parser.get_parsed_text()
 
-        result = self.manifest_parser.configset.evaluate(expr)
+        result = self.manifest_parser.settings.evaluate(expr)
         self.manifest_parser.debug("COND EXPR: '{}' = {}".format(expr, result))
 
         if self.context_parser.get_remaining_text():
@@ -189,10 +189,10 @@ class ManifestParser(Log.Debuggable):
         Encapsulates logic to parse a manifest
     """
 
-    def __init__(self, manifest, configset, debug_mode=False, validate_files=True):
+    def __init__(self, manifest, settings, debug_mode=False, validate_files=True):
         Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
-        self.configset = configset
+        self.settings = settings
         self.manifest = manifest
         self.validate_files = validate_files
         self.line_info = None

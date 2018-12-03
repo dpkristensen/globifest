@@ -41,7 +41,7 @@ __all__ = [
     "testConfigDef",
     "testConfigParser",
     "testConfigProject",
-    "testConfigSet",
+    "testSettings",
     "testLineInfo",
     "testLineReader",
     "testManifest",

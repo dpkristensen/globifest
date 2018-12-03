@@ -86,7 +86,7 @@ class TestManifestParser(unittest.TestCase):
     def create_parser(self, configs = Util.Container()):
         # The manifest and reader are not under test, but simple enough to use directly
         self.manifest = Helpers.new_manifest()
-        self.configs = Helpers.new_configset(configs)
+        self.configs = Helpers.new_settings(configs)
         self.parser = ManifestParser.new(self.manifest, self.configs, debug_mode=True, validate_files=False)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser

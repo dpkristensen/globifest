@@ -36,7 +36,7 @@
 import argparse
 import re
 
-from GlobifestLib import ConfigSet, Builder, Log, Util
+from GlobifestLib import Settings, Builder, Log, Util
 
 def run_cmd():
     """
@@ -165,7 +165,7 @@ def run_cmd():
             else:
                 Log.E("Invalid config: {}".format(config), Log.ERROR.INPUT)
 
-        manifest = Builder.build_manifest(args.in_fname, ConfigSet.new(manifest_configs))
+        manifest = Builder.build_manifest(args.in_fname, Settings.new(manifest_configs))
     except Log.GlobifestException as e:
         # The logger prints these already, no need to print again
         print("FAILED")

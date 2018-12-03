@@ -33,12 +33,12 @@
 
 from GlobifestLib import LineReader, Manifest, ManifestParser
 
-def build_manifest(in_fname, configset):
+def build_manifest(in_fname, settings):
     """
       Build a manifest from the given file
     """
     manifest = Manifest.new(in_fname)
-    parser = ManifestParser.new(manifest, configset)
+    parser = ManifestParser.new(manifest, settings)
     reader = LineReader.new(parser)
 
     reader.read_file_by_name(in_fname)

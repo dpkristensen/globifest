@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testConfigSet.py - Tests for ConfigSet module
+    globifest/globitest/testSettings.py - Tests for Settings module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -35,10 +35,10 @@ import io
 import sys
 import unittest
 
-from GlobifestLib import ConfigSet, Log, Util
+from GlobifestLib import Settings, Log, Util
 from Globitest import Helpers
 
-class TestConfigSet(unittest.TestCase):
+class TestSettings(unittest.TestCase):
 
     def setUp(self):
         self.pipe = io.StringIO()
@@ -61,7 +61,7 @@ class TestConfigSet(unittest.TestCase):
         del self.pipe
 
     def create_config_set(self, config = Util.Container()):
-        self.config = ConfigSet.new(
+        self.config = Settings.new(
             configs = config,
             debug_mode = True
             )
