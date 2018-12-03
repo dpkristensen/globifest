@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testConfigParser.py - Tests for ConfigParser module
+    globifest/globitest/testDefinitionParser.py - Tests for DefinitionParser module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -36,11 +36,11 @@ import io
 import sys
 import unittest
 
-from GlobifestLib import ConfigDef, ConfigParser, LineReader, Log, Util
+from GlobifestLib import ConfigDef, DefinitionParser, LineReader, Log, Util
 
 from Globitest import Helpers
 
-class TestConfigParser(unittest.TestCase):
+class TestDefinitionParser(unittest.TestCase):
 
     def setUp(self):
         self.pipe = io.StringIO()
@@ -81,7 +81,7 @@ class TestConfigParser(unittest.TestCase):
     def create_parser(self):
         # The ConfigDef and reader are not under test, but simple enough to use directly
         self.configdef = ConfigDef.new()
-        self.parser = ConfigParser.new(self.configdef, debug_mode=True)
+        self.parser = DefinitionParser.new(self.configdef, debug_mode=True)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser
         self.reader = LineReader.new(self.parser)

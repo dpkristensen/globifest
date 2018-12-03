@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/ConfigParser.py - globifest
+    globifest/DefinitionParser.py - globifest
 
     This script processes package descriptor files and generates output for plugging into another
     build system.
@@ -189,7 +189,7 @@ class Context(object):
         elif self.ctx.ptype is None:
             self.config_parser.log_error("Missing type for config {}".format(self.ctx.id))
 
-class ConfigParser(Log.Debuggable):
+class DefinitionParser(Log.Debuggable):
     """
         Encapsulates logic to parse a configuration file
     """
@@ -421,4 +421,4 @@ class ConfigParser(Log.Debuggable):
         elif not m.found:
             self.log_error("Bad directive '{}'".format(text))
 
-new = ConfigParser
+new = DefinitionParser
