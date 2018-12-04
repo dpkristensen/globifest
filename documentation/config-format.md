@@ -135,15 +135,17 @@ Note that trailing whitespace is ignored.
 
 ### 3.1 Project Structure
 
-**Parent**=Top **Parameters**
+**Parent**=Top
 
 The "project" directive is used to start a block defining the structure.  Files which are only included in another project (i.e., as a layer variant) should not have this block.
 
-#### 3.1.1 Name Parameter
+The project must be followed by a human readable name.
 
-**Parent**=project
+Example:
 
-The "name" parameter defines human-readable project name for use in the config application.  If omitted, the project will be named after the config filename's base name.
+    :project My Project
+        # ... project contents go here
+    :end
 
 ### 3.2 Layer
 
