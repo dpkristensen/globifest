@@ -2,9 +2,6 @@
 """
     globifest/DefinitionParser.py - globifest
 
-    This script processes package descriptor files and generates output for plugging into another
-    build system.
-
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
 
@@ -65,10 +62,10 @@ class Context(object):
         "MENU"
         )
 
-    def __init__(self, config_parser, prev_context=None, line_info=None, ctx=None):
+    def __init__(self, def_parser, prev_context=None, line_info=None, ctx=None):
         """Initialize the top (file-scope) nesting level"""
 
-        self.config_parser = config_parser
+        self.def_parser = def_parser
 
         if prev_context is None:
             self.level = 0
@@ -119,10 +116,10 @@ class Context(object):
         """Return whether name is in elements, and is not already stored in ctx"""
 
         if name not in elements.keys():
-            self.config_parser.log_error("Invalid parameter: {}".format(name))
+            self.def_parser.log_error("Invalid parameter: {}".format(name))
 
         if self.ctx[elements[name]] is not None:
-            self.config_parser.log_error("Redefinition of {}".format(name))
+            self.def_parser.log_error("Redefinition of {}".format(name))
 
         return True
 
@@ -136,12 +133,12 @@ class Context(object):
     def process_param_config(self, name, value):
         """Process a config parameter"""
         if not value:
-            self.config_parser.log_error("Bad parameter: {}".format(value))
+            self.def_parser.log_error("Bad parameter: {}".format(value))
 
         if name == "menu":
             # The menu parameter requires special handling, since it overwrites the scope_path
             if self.scope_path is not None:
-                self.config_parser.log_error("Redefinition of menu")
+                self.def_parser.log_error("Redefinition of menu")
             else:
                 self.scope_path = value
             return
@@ -150,30 +147,30 @@ class Context(object):
             if name == "type":
                 self.ctx.ptype = Config.validate_type(value)
                 if self.ctx.ptype is None:
-                    self.config_parser.log_error("Invalid type: {}".format(value))
+                    self.def_parser.log_error("Invalid type: {}".format(value))
             elif name == "default":
                 if self.ctx.ptype is None:
-                    self.config_parser.log_error("default must appear after type")
+                    self.def_parser.log_error("default must appear after type")
 
                 self.ctx.default = Config.validate_value(self.ctx.ptype, value)
                 if self.ctx.default is None:
-                    self.config_parser.log_error("Invalid value: {}".format(value))
+                    self.def_parser.log_error("Invalid value: {}".format(value))
             else:
                 # No additional validation required for other elements
                 self.ctx[CONFIG_ELEMENTS[name]] = value
         else:
-            self.config_parser.debug("not found: {}".format(name))
+            self.def_parser.debug("not found: {}".format(name))
 
     def process_param_menu(self, name, value):
         """Process a menu parameter"""
         if not value:
-            self.config_parser.log_error("Bad parameter: {}".format(value))
+            self.def_parser.log_error("Bad parameter: {}".format(value))
 
         if self.is_unique_element(MENU_ELEMENTS, name):
             # No additional validation required for elements
             self.ctx[MENU_ELEMENTS[name]] = value
         else:
-            self.config_parser.debug("not found: {}".format(name))
+            self.def_parser.debug("not found: {}".format(name))
 
     def validate_config(self):
         """Validate the final state of a config context"""
@@ -185,13 +182,13 @@ class Context(object):
 
         # Validate required fields
         if not self.ctx.id:
-            self.config_parser.log_error("Missing config ID")
+            self.def_parser.log_error("Missing config ID")
         elif self.ctx.ptype is None:
-            self.config_parser.log_error("Missing type for config {}".format(self.ctx.id))
+            self.def_parser.log_error("Missing type for config {}".format(self.ctx.id))
 
 class DefinitionParser(Log.Debuggable):
     """
-        Encapsulates logic to parse a configuration file
+        Encapsulates logic to parse a definition file
     """
 
     def __init__(self, config, debug_mode=False):
@@ -201,7 +198,7 @@ class DefinitionParser(Log.Debuggable):
         self.line_info = None
 
         # Always has a context
-        top_context = Context(config_parser=self)
+        top_context = Context(def_parser=self)
         self.context_stack = [top_context]
 
         regex_flags = 0
@@ -273,7 +270,7 @@ class DefinitionParser(Log.Debuggable):
 
     def parse_end(self):
         """
-            End parsing of the config file
+            End parsing of the definition file
         """
         if not self.context_stack:
             self.log_error("Invalid post-parsing state")
@@ -345,7 +342,7 @@ class DefinitionParser(Log.Debuggable):
             self.log_error("config is not allowed in this scope")
 
         new_context = Context(
-            config_parser=self,
+            def_parser=self,
             prev_context=cur_context,
             line_info=self.line_info,
             ctx=Util.Container(
@@ -387,7 +384,7 @@ class DefinitionParser(Log.Debuggable):
             self.log_error("menu is not allowed in this scope")
 
         new_context = Context(
-            config_parser=self,
+            def_parser=self,
             prev_context=cur_context,
             line_info=self.line_info,
             ctx=Util.Container(
