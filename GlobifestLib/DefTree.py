@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/Config.py - globifest Configuration Definition
+    globifest/DefTree.py - globifest Configuration Definition
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -134,13 +134,13 @@ class Parameter(object):
         return self.ptype
 
 class PrintObserver(object):
-    """This class can be used to print a Scope or Config"""
+    """This class can be used to print a Scope or DefTree"""
 
     def __init__(self):
         self.level = 0
 
     def on_def_begin(self, filename):
-        """Handler for the beginning of a Config"""
+        """Handler for the beginning of a DefTree"""
         self._print("File: '{}'".format(filename))
 
     def on_param(self, param):
@@ -234,7 +234,7 @@ class Scope(object):
 
         observer.on_scope_end()
 
-class Config(Scope):
+class DefTree(Scope):
     """Encapsulates a nested tree of Parameters"""
 
     def __init__(self, filename=""):
@@ -242,7 +242,7 @@ class Config(Scope):
         self.filename = filename
 
     def get_filename(self):
-        """Returns the filename of the config definition"""
+        """Returns the filename of the definition"""
         return self.filename
 
     def get_scope(self, scope_path):
@@ -270,4 +270,4 @@ class Config(Scope):
         observer.on_def_begin(self.filename)
         Scope.walk(self, observer)
 
-new = Config
+new = DefTree
