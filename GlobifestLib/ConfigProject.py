@@ -77,6 +77,10 @@ class ConfigProject(object):
         """Returns the filename where the project is defined"""
         return self.filename
 
+    def get_layer_names(self):
+        """Return a list of the names of each layer, from lowest to highest"""
+        return [layer.name for layer in self.layers]
+
     def get_name(self):
         """Returns the name of the project"""
         return self.prj_name
@@ -91,6 +95,14 @@ class ConfigProject(object):
             return self._get_layer_ref(layer_name)
         else:
             return self._get_variant_ref(layer_name, variant_name)
+
+    def get_variant_names(self, layer_name):
+        """Return a list of the names of each variant in a layer"""
+        layer_ref = self._get_layer_ref(layer_name)
+        if layer_ref is None:
+            return []
+
+        return [variant.name for variant in layer_ref.variants]
 
     def log_error(self, msg):
         """

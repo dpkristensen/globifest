@@ -58,6 +58,13 @@ class TestConfigParser(unittest.TestCase):
             if hasattr(self, "pipe") and self.pipe:
                 print("ERRORS:")
                 print(self.pipe.getvalue().rstrip())
+            if hasattr(self, "project"):
+                print("PROJECT:")
+                print("  name={}".format(self.project.get_name()))
+                for layer in self.project.get_layer_names():
+                    print("  Layer({})".format(layer))
+                    for variant in self.project.get_variant_names(layer):
+                        print("  {}".format(variant))
             if hasattr(self, "config"):
                 print("PARSED CONFIGS:")
                 self.config.walk(Config.PrintObserver())
