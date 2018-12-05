@@ -38,12 +38,22 @@ from GlobifestLib import \
     Matcher, \
     Util
 
+IDENTIFIER_NAME = "[a-zA-Z0-9_]+"
+
+# Map of unique Layer element strings to Context.ctx member names in no particular order
+LAYER_ELEMENTS = Util.Container(
+    # "variant" is not unique, so not present in this list
+    prefix="prefix",
+    suffix="suffix"
+    )
+
 class Context(object):
     """
         Encapsulates contextual information for a nesting level
     """
 
     CTYPE = Util.create_enum(
+        "LAYER",
         "PROJECT"
         )
 
@@ -75,6 +85,8 @@ class Context(object):
         """Return whether context has all required information"""
         if self.ctx.ctype == Context.CTYPE.PROJECT:
             self.validate_project()
+        elif self.ctx.ctype == Context.CTYPE.LAYER:
+            self.validate_layer()
         else:
             assert self.ctx.ctype is not None
             return False
@@ -95,12 +107,42 @@ class Context(object):
         """Process a parameter in context"""
         if self.ctx.ctype == Context.CTYPE.PROJECT:
             self.config_parser.log_error("Projects have no parameters")
+        if self.ctx.ctype == Context.CTYPE.LAYER:
+            self.process_param_layer(name, value)
+
+    def process_param_layer(self, name, value):
+        """Process a layer parameter"""
+        if not value:
+            self.config_parser.log_error("Bad parameter: {}".format(value))
+
+        if name == "variant":
+            if re.fullmatch(IDENTIFIER_NAME, value):
+                self.ctx.variants.append(value)
+            else:
+                self.config_parser.log_error("Invalid identifier: {}".format(value))
+        elif self.is_unique_element(LAYER_ELEMENTS, name):
+            # No additional validation required for these elements
+            self.ctx[LAYER_ELEMENTS[name]] = value
+        else:
+            self.config_parser.debug("not found: {}".format(name))
+
+    def validate_layer(self):
+        """Validate the final state of a layer context"""
+        # Set defaults
+        if not self.ctx.prefix:
+            self.ctx.prefix = self.prev_context.ctx.prj_name + "_" + self.ctx.layer_name + "_"
+        if not self.ctx.suffix:
+            self.ctx.suffix = ".cfg"
+
+        # Validate required fields
+        if not self.ctx.variants:
+            self.config_parser.log_error("Layer {} has no variants".format(self.ctx.layer_name))
 
     def validate_project(self):
         """Validate the final state of a project context"""
         # Validate required fields
         if not self.ctx.prj_name:
-            self.config_parser.log_error("Missing project nmae")
+            self.config_parser.log_error("Missing project name")
 
 class ConfigParser(Log.Debuggable):
     """
@@ -121,8 +163,6 @@ class ConfigParser(Log.Debuggable):
         if Log.Logger.has_level(Log.LEVEL.EXTREME):
             regex_flags = re.DEBUG
 
-        identifier_name = "[a-zA-Z0-9_]*"
-
         # line regexes, in order of matching
         with Log.CaptureStdout(self, "COMMENT_RE:"):
             self.comment_re = re.compile("[;#].*", regex_flags)
@@ -137,10 +177,15 @@ class ConfigParser(Log.Debuggable):
                 "project[ \t]+(.+)$",
                 regex_flags
                 )
+        with Log.CaptureStdout(self, "LAYER_RE:"):
+            self.layer_re = re.compile(
+                "layer[ \t]+(.+)$",
+                regex_flags
+                )
 
         # Block parameter regex
         with Log.CaptureStdout(self, "BLOCK_PARAM_RE::"):
-            self.param_re = re.compile("(" + identifier_name + ")[ \t]+(.+)", regex_flags)
+            self.param_re = re.compile("(" + IDENTIFIER_NAME + ")[ \t]+(.+)", regex_flags)
 
     def get_target(self):
         """Returns the target ConfigProject which is being parsed"""
@@ -204,10 +249,52 @@ class ConfigParser(Log.Debuggable):
         ctype = cur_context.get_ctype()
         if ctype == Context.CTYPE.PROJECT:
             self._project_end(cur_context)
+        elif ctype == Context.CTYPE.LAYER:
+            self._layer_end(cur_context)
         else:
             assert ctype is not None
 
         self.context_stack.pop(-1)
+
+    def _layer_end(self, context):
+        """
+            End a layer block
+
+            Save the layer
+        """
+        self.config_project.add_layer(context.ctx.layer_name)
+        for variant in context.ctx.variants:
+            self.config_project.add_variant(
+                context.ctx.layer_name,
+                variant,
+                context.ctx.prefix + variant + context.ctx.suffix # Filename
+                )
+
+    def _layer_start(self, name):
+        """
+            Start a layer block
+
+            Push a new context onto the stack with CTYPE.LAYER.
+        """
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [Context.CTYPE.PROJECT]:
+            self.log_error("layer is not allowed in this scope")
+
+        new_context = Context(
+            config_parser=self,
+            prev_context=cur_context,
+            line_info=self.line_info,
+            ctx=Util.Container(
+                ctype=Context.CTYPE.LAYER,
+                layer_name=name,
+                variants=[], # Initially empty list
+                prefix=None,
+                suffix=None
+                )
+            )
+        self.debug("  {}".format(name))
+        self.context_stack.append(new_context)
 
     def _project_end(self, context):
         """
@@ -254,7 +341,10 @@ class ConfigParser(Log.Debuggable):
         """
         m = Matcher.new(text)
 
-        if m.is_fullmatch(self.project_re):
+        if m.is_fullmatch(self.layer_re):
+            self.debug("LAYER: {}".format(m[1]))
+            self._layer_start(m[1])
+        elif m.is_fullmatch(self.project_re):
             self.debug("PROJECT: {}".format(m[1]))
             self._project_start(m[1])
         elif m.is_fullmatch(self.block_end_re):

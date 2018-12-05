@@ -64,7 +64,7 @@ class TestConfigParser(unittest.TestCase):
                 for layer in self.project.get_layer_names():
                     print("  Layer({})".format(layer))
                     for variant in self.project.get_variant_names(layer):
-                        print("  {}".format(variant))
+                        print("    {}".format(variant))
             if hasattr(self, "config"):
                 print("PARSED CONFIGS:")
                 self.config.walk(Config.PrintObserver())
@@ -96,6 +96,14 @@ class TestConfigParser(unittest.TestCase):
         prj = self.parser.get_target();
         self.assertIsNotNone(prj)
         self.assertEqual(prj.get_name(), expected.name)
+        for actual_layer_name, expected_layer in zip(prj.get_layer_names(), expected.layers):
+            self.assertEqual(actual_layer_name, expected_layer.name)
+            for actual_variant_name, expected_variant in zip(prj.get_variant_names(actual_layer_name), expected_layer.variants):
+                self.assertEqual(actual_variant_name, expected_variant.name)
+                self.assertEqual(
+                    prj.get_target(actual_layer_name, actual_variant_name).filename,
+                    expected_variant.filename
+                    )
 
     def test_empty_project(self):
         self.create_parser()
@@ -108,7 +116,80 @@ class TestConfigParser(unittest.TestCase):
             )
 
         self.verify_project(Util.Container(**{
-            "name" : "MyProject"
+            "name" : "MyProject",
+            "layers" : []
+            }))
+
+    def test_layers(self):
+        self.create_parser()
+        self.parse_lines(
+            ":project Breakfast",
+            "    :layer cereal",
+            "        variant SugarFlakes",
+            "    :end",
+            "    :layer fruit",
+            "        variant Apple",
+            "        variant Banana",
+            "        variant Pear",
+            "        suffix .yum",
+            "    :end",
+            "    :layer drink",
+            "        prefix ../liquids/",
+            "        variant Apple",
+            "        variant Orange",
+            "        variant Cow",
+            "        suffix _Juice.txt",
+            "    :end",
+            ":end",
+            )
+
+        self.verify_project(Util.Container(**{
+            "name" : "Breakfast",
+            "layers" : [
+                Util.Container(
+                    name="cereal",
+                    variants=[
+                        Util.Container(
+                            name="SugarFlakes",
+                            filename="Breakfast_cereal_SugarFlakes.cfg"
+                            )
+                        ]
+                    ),
+                Util.Container(
+                    name="fruit",
+                    variants=[
+                        Util.Container(
+                            name="Apple",
+                            filename="Breakfast_fruit_Apple.yum"
+                            ),
+                        Util.Container(
+                            name="Banana",
+                            filename="Breakfast_fruit_Banana.yum"
+                            ),
+                        Util.Container(
+                            name="Pear",
+                            filename="Breakfast_fruit_Pear.yum"
+                            )
+                        ]
+                    ),
+                Util.Container(
+                    name="drink",
+                    variants=[
+                        Util.Container(
+                            name="Apple",
+                            filename="../liquids/Apple_Juice.txt"
+                            ),
+                        Util.Container(
+                            name="Orange",
+                            filename="../liquids/Orange_Juice.txt"
+                            ),
+                        Util.Container(
+                            name="Cow",
+                            filename="../liquids/Cow_Juice.txt"
+                            )
+                        ]
+                    )
+                ]
             }))
 
     def test_name_whitespace(self):
@@ -119,5 +200,6 @@ class TestConfigParser(unittest.TestCase):
             )
 
         self.verify_project(Util.Container(**{
-            "name" : "My Project"
+            "name" : "My Project",
+            "layers" : []
             }))
