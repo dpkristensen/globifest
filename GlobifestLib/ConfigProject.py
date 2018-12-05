@@ -47,11 +47,12 @@ class ConfigProject(object):
         See config-format.md for further details.
     """
 
-    def __init__(self, prj_name, err_ctx=Log.ERROR.RUNTIME, err_fatal=False):
+    def __init__(self, filename="", err_ctx=Log.ERROR.RUNTIME, err_fatal=False):
         self.layers = list() # This is a list instead of a container to ensure ordering
-        self.prj_name = prj_name
         self.err_ctx = err_ctx
         self.err_fatal = err_fatal
+        self.filename = filename
+        self.prj_name = None
 
     def add_layer(self, layer_name):
         """Push a new layer onto the stack"""
@@ -71,6 +72,10 @@ class ConfigProject(object):
                 config=Util.Container()
                 )
             layer_ref.variants.append(variant_ref)
+
+    def get_filename(self):
+        """Returns the filename where the project is defined"""
+        return self.filename
 
     def get_name(self):
         """Returns the name of the project"""
@@ -94,6 +99,15 @@ class ConfigProject(object):
             @note The error may not be fatal, so it should be handled as well.
         """
         Log.E(msg, err_type=self.err_ctx, is_fatal=self.err_fatal)
+
+    def set_name(self, name):
+        """Sets the name of the project (can only be done once)"""
+        if name is None:
+            self.log_error("Project name cannot be None")
+        elif self.prj_name is None:
+            self.prj_name = name
+        else:
+            self.log_error("Cannot set project name twice. cur={} new={}".format(self.prj_name, name))
 
     def _get_layer_ref(self, layer_name):
         """@return reference to the layer, or None if not found"""

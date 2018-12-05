@@ -34,7 +34,6 @@
 import re
 
 from GlobifestLib import \
-    ConfigProject, \
     Log, \
     Matcher, \
     Util
@@ -75,8 +74,7 @@ class Context(object):
     def is_complete(self):
         """Return whether context has all required information"""
         if self.ctx.ctype == Context.CTYPE.PROJECT:
-            # No additional validation
-            pass
+            self.validate_project()
         else:
             assert self.ctx.ctype is not None
             return False
@@ -98,15 +96,21 @@ class Context(object):
         if self.ctx.ctype == Context.CTYPE.PROJECT:
             self.config_parser.log_error("Projects have no parameters")
 
+    def validate_project(self):
+        """Validate the final state of a project context"""
+        # Validate required fields
+        if not self.ctx.prj_name:
+            self.config_parser.log_error("Missing project nmae")
+
 class ConfigParser(Log.Debuggable):
     """
         Encapsulates logic to parse a configuration file
     """
 
-    def __init__(self, debug_mode=False):
+    def __init__(self, project, debug_mode=False):
         Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
-        self.config_project = None
+        self.config_project = project
         self.line_info = None
 
         # Always has a context
@@ -211,10 +215,10 @@ class ConfigParser(Log.Debuggable):
 
             Save the project
         """
-        if self.config_project is not None:
+        if self.config_project.get_name() is not None:
             self.log_error("Cannot redefine project")
 
-        self.config_project = context.ctx.cfg_prj
+        self.config_project.set_name(context.ctx.prj_name)
 
         assert self.config_project is not None
 
@@ -229,7 +233,7 @@ class ConfigParser(Log.Debuggable):
         if ctype not in [None]:
             self.log_error("project is not allowed in this scope")
 
-        if self.config_project is not None:
+        if self.config_project.get_name() is not None:
             self.log_error("Cannot define multiple projects")
 
         new_context = Context(
@@ -238,7 +242,7 @@ class ConfigParser(Log.Debuggable):
             line_info=self.line_info,
             ctx=Util.Container(
                 ctype=Context.CTYPE.PROJECT,
-                cfg_prj=ConfigProject.new(name)
+                prj_name=name
                 )
             )
         self.debug("  {}".format(name))

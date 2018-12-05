@@ -41,7 +41,9 @@ class TestConfigProject(unittest.TestCase):
         self.assertEqual(actual.get_diff(expected), Util.Container())
 
     def test_complex_set(self):
-        prj = ConfigProject.new("Complex Set", err_fatal=True)
+        prj = ConfigProject.new(err_fatal=True)
+        self.assertIsNone(prj.get_name())
+        prj.set_name("Complex Set")
         self.assertEqual(prj.get_name(), "Complex Set")
 
         prj.add_layer("layer1")

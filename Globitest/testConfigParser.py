@@ -75,7 +75,8 @@ class TestConfigParser(unittest.TestCase):
             del self.pipe
 
     def create_parser(self):
-        self.parser = ConfigParser.new(debug_mode=True)
+        self.project = ConfigProject.new()
+        self.parser = ConfigParser.new(self.project, debug_mode=True)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser
         self.reader = LineReader.new(self.parser)
