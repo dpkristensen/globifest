@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testConfigParser.py - Tests for ConfigParser module
+    globifest/globitest/testProjectParser.py - Tests for ProjectParser module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -36,11 +36,11 @@ import io
 import sys
 import unittest
 
-from GlobifestLib import ConfigProject, ConfigParser, LineReader, Log, Util
+from GlobifestLib import Project, ProjectParser, LineReader, Log, Util
 
 from Globitest import Helpers
 
-class TestConfigParser(unittest.TestCase):
+class TestProjectParser(unittest.TestCase):
 
     def setUp(self):
         self.pipe = io.StringIO()
@@ -65,25 +65,18 @@ class TestConfigParser(unittest.TestCase):
                     print("  Layer({})".format(layer))
                     for variant in self.project.get_variant_names(layer):
                         print("    {}".format(variant))
-            if hasattr(self, "config"):
-                print("PARSED CONFIGS:")
-                self.config.walk(Config.PrintObserver())
-            else:
-                print("NO CONFIGS!")
 
         # Unreference the objects in reverse order
         if hasattr(self, "reader"):
             del self.reader
         if hasattr(self, "parser"):
             del self.parser
-        if hasattr(self, "config"):
-            del self.config
         if hasattr(self, "pipe"):
             del self.pipe
 
     def create_parser(self):
-        self.project = ConfigProject.new()
-        self.parser = ConfigParser.new(self.project, debug_mode=True)
+        self.project = Project.new()
+        self.parser = ProjectParser.new(self.project, debug_mode=True)
 
         # The reader is not under test, but it provides a good way to feed strings to the parser
         self.reader = LineReader.new(self.parser)

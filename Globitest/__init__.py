@@ -38,10 +38,10 @@ __copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiari
 __all__ = [
     "Helpers",
     "testBoundedStatefulParser",
-    "testConfigParser",
+    "testProjectParser",
     "testDefinitionParser",
     "testDefTree",
-    "testConfigProject",
+    "testProject",
     "testSettings",
     "testLineInfo",
     "testLineReader",

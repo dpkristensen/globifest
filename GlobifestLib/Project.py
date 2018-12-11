@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/ConfigProject.py - globifest Configuration Project
+    globifest/Project.py - globifest Configuration Project
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -33,9 +33,9 @@
 
 from GlobifestLib import Log, Util
 
-class ConfigProject(object):
+class Project(object):
     """
-        Encapsulates a matrix of Settings which define project-specific configuration settings.
+        Encapsulates information necessary to build with various configurations.
 
         The project has one or more layers, and each layer has one or more variants.  Layers are
         configs structured in priority order, with higher priority layers overriding settings
@@ -44,7 +44,7 @@ class ConfigProject(object):
         Variants are individual options chosen within each layer, so that only one is active at
         any time.
 
-        See config-format.md for further details.
+        See project-format.md for further details.
     """
 
     def __init__(self, filename="", err_ctx=Log.ERROR.RUNTIME, err_fatal=False):
@@ -143,4 +143,4 @@ class ConfigProject(object):
         self.log_error("Attempted to access non-existent variant {}".format(variant_name))
         return None
 
-new = ConfigProject
+new = Project

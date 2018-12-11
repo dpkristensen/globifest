@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/testConfigProject.py - Tests for ConfigProject module
+    globifest/globitest/testProject.py - Tests for Project module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -33,15 +33,15 @@
 
 import unittest
 
-from GlobifestLib import ConfigProject, Util
+from GlobifestLib import Project, Util
 
-class TestConfigProject(unittest.TestCase):
+class TestProject(unittest.TestCase):
 
     def verify_configs(self, actual, expected):
         self.assertEqual(actual.get_diff(expected), Util.Container())
 
     def test_complex_set(self):
-        prj = ConfigProject.new(err_fatal=True)
+        prj = Project.new(err_fatal=True)
         self.assertIsNone(prj.get_name())
         prj.set_name("Complex Set")
         self.assertEqual(prj.get_name(), "Complex Set")

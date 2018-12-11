@@ -1,6 +1,6 @@
-# Globifest - Configuration
+# Globifest - Project
 
-Configuration files store the selected options to use when building your project.
+Project files store information necessary to build one or more software targets under various configurations.
 
 ## 0 Legal Stuff
 

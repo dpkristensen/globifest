@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/ConfigParser.py - globifest
+    globifest/ProjectParser.py - globifest
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -144,7 +144,7 @@ class Context(object):
         if not self.ctx.prj_name:
             self.config_parser.log_error("Missing project name")
 
-class ConfigParser(Log.Debuggable):
+class ProjectParser(Log.Debuggable):
     """
         Encapsulates logic to parse a configuration file
     """
@@ -188,7 +188,7 @@ class ConfigParser(Log.Debuggable):
             self.param_re = re.compile("(" + IDENTIFIER_NAME + ")[ \t]+(.+)", regex_flags)
 
     def get_target(self):
-        """Returns the target ConfigProject which is being parsed"""
+        """Returns the target Project which is being parsed"""
         return self.config_project
 
     def log_error(self, err_text):
@@ -353,4 +353,4 @@ class ConfigParser(Log.Debuggable):
         elif not m.found:
             self.log_error("Bad directive '{}'".format(text))
 
-new = ConfigParser
+new = ProjectParser
