@@ -10,32 +10,31 @@ Please read the Software License ([LICENSE.md](../LICENSE.md)) and Contributor L
 
 Each project may have multiple axes upon which to define all build configurations.  Each project has one or more "layers", which each have one or more "variants".
 
-Only one variant may be selected at a time per layer, but multiple layers may exist.
-
-The configuration values can be overridden by higher-priority layers.  The lowest-priority layer is implicitly defined as the "default" layer.
+Only one variant may be selected at a time per layer, but multiple layers may exist.  The configuration values can be overridden by higher-priority layers, and a layer may also only have one variant (useful for establishing overridable defaults)
 
 Consider the following configuration example:
 
-* Layer "default" (implicitly exists)
+* Layer "base" = {"defaults"}
 * Layer "compiler" = {"gcc", "msvc", "arm"}
 * Layer "mode" = {"production", "development"}
 
-Permutating all values above (1 default x 3 compilers x 2 modes), there are a total of **6 possible build variations per project**.
+Permutating all values above (1 base x 3 compilers x 2 modes), there are a total of **6 possible build variations per project**.
 
-The "default" layer is the lowest priority, followed by "compiler", and then "mode" is the highest.  The effective configuration is found by first applying default, then compiler, then mode.
+The "base" layer is the lowest priority, followed by "compiler", and then "mode" is the highest.  The effective configuration is found by first applying base, then compiler, then mode.
 
 ### 1.1 File Heirarchy
 
-The configuration file is the top-level project, and only contains the "default" implicit layer settings.  Settings for all other layers are stored in a separate file, one for each variant of that layer.
+A project must have at least one layer and settings for all layers are stored in a separate file, one for each variant of that layer.
 
 So the folder structure might look like this:
 
-* /my-project/config/build.gconf
-* /my-project/config/build_compiler_arm.cfg
-* /my-project/config/build_compiler_gcc.cfg
-* /my-project/config/build_compiler_msvc.cfg
-* /my-project/config/build_mode_development.cfg
-* /my-project/config/build_mode_production.cfg
+* /my-project/config/base_defaults.cfg
+* /my-project/config/build.gproj
+* /my-project/config/compiler_arm.cfg
+* /my-project/config/compiler_gcc.cfg
+* /my-project/config/compiler_msvc.cfg
+* /my-project/config/mode_development.cfg
+* /my-project/config/mode_production.cfg
 
 ### 1.1 Configuration Sharing Between Projects
 
@@ -43,63 +42,57 @@ A "project" can't inherit from another project, but it can re-use the same confi
 
 So the configuration for this test program would look like:
 
-* Layer "default" (implicitly exists)
+* Layer "base" {"test_defaults"}
 * Layer "compiler" = {"gcc", "msvc"}
 * Layer "os" = {"posix", "win32"}
 
-Now you could build with gcc for both os variants, but msvc can't be used to generate posix applications.  So this combination is prohibited.
+Now you could build with gcc for both os variants, but msvc can't be used to generate posix applications.  So this combination is prohibited.  So when adding a tests project, the overall file structure would look like:
 
-Restructuring the project for both the hardware and test app build, you might have something like this.
+* /my-project/config/base_hardware_defaults.cfg
+* /my-project/config/base_test_defaults.cfg
+* /my-project/config/build_hardware.gproj
+* /my-project/config/build_tests.gproj
+* /my-project/config/compiler_arm.cfg
+* /my-project/config/compiler_gcc.cfg
+* /my-project/config/compiler_msvc.cfg
+* /my-project/config/mode_development.cfg
+* /my-project/config/mode_production.cfg
+* /my-project/config/os_posix.cfg
+* /my-project/config/os_win32.cfg
 
-* /my-project/config/compiler/arm.cfg
-* /my-project/config/compiler/gcc.cfg
-* /my-project/config/compiler/msvc.cfg
-* /my-project/config/mode/development.cfg
-* /my-project/config/mode/production.cfg
-* /my-project/config/os/posix.cfg
-* /my-project/config/os/win32.cfg
-* /my-project/config/build_hardware.gconf
-* /my-project/config/build_tests.gconf
+build_hardware.gproj needs to use:
 
-build_hardware.gconf needs to use:
+* hardware-defaults.cfg
+* compiler_arm.cfg
+* compiler_gcc.cfg
+* compiler_msvc.cfg
+* mode_development.cfg
+* mode_production.cfg
 
-* compiler/arm.cfg
-* compiler/gcc.cfg
-* compiler/msvc.cfg
-* mode/development.cfg
-* mode/production.cfg
+build_tests.gproj needs to use:
 
-build_tests.gconf needs to use:
-
-* compiler/gcc.cfg
-* compiler/msvc.cfg
-* os/posix.cfg
-* os/win32.cfg
+* base_test_defaults.cfg
+* compiler_gcc.cfg
+* compiler_msvc.cfg
+* os_posix.cfg
+* os_win32.cfg
 
 If desired, you could add stub layers with a single value for consistency about where the configs are stored.  Examples:
 
-* Using os/rtos.cfg for the hardware build makes the "OS" settings stored consistently in a separate file, instead of directly in build_hardware.gconf.
-* Using mode/development.cfg for the tests build prevents the need to repeat the same settings for tests.
-
-### 1.2 Configuration Inheritance
-
-Inheriting another configuration file would be directly including one file into another, which is not supported.
-
-This is because the configuration app modifies the files when saving and uses the layer variant to determine where to save settings.  Direct inclusion would make the target file ambiguous.
-
-To implement similar functionality, define a layer with a single variant and point it to the file you wish to include.
+* Using os_rtos.cfg for the hardware build makes the "OS" settings stored consistently in a similar layer as other OS settings.
+* Using mode_development.cfg for the tests build prevents the need to repeat the same settings for tests.
 
 ## 2 General Format
 
-Configuration files are parsed in a mostly line-oriented fashion and should be encoded as ASCII.  Carriage Return (ASCII 13) and/or Line Feed (ASCII 10) both indicate a new line (so the format is agnostic to Unix or DOS-style line endings).
+Project files are parsed in a mostly line-oriented fashion and should be encoded as ASCII.  Carriage Return (ASCII 13) and/or Line Feed (ASCII 10) both indicate a new line (so the format is agnostic to Unix or DOS-style line endings).
 
-It is recommended that the filename end in .cfg or .gconf.
+It is recommended that the filename end in .pfg or .gproj.
 
 NOTE: The provided application will generate and modify these files for users, but they can be created/modified manually or via a different application as well.
 
 ### 2.1 Comments
 
-All lines leading with a Semicolon (ASCII 59) or Hash (ASCII 35) are not processed by the parser.  These can be used to communicate information to Humans, Software, or Robots reading the file, but should be ignored by the configuration interface.
+All lines leading with a Semicolon (ASCII 59) or Hash (ASCII 35) are not processed by the parser.  These can be used to communicate information to Humans, Software, or Robots reading the file, but should be ignored by most tools.
 
     ; This is a comment
     ; It will be ignored by the parser
@@ -151,9 +144,7 @@ Example:
 
 **Parent**=project **Multiple**
 
-The "layer" directive defines a configuration layer with a higher priority than all previously defined layers (or higher than the "default" layer if none previously defined).
-
-The layer must be followed by an identifier, which will serve as its name.  This cannot be "default".
+The "layer" directive defines a configuration layer with a higher priority than all previously defined layers.  The layer must be followed by an identifier, which will serve as its name.
 
 Example:
 
@@ -163,11 +154,11 @@ Example:
         variant msvc
     :end
 
-The files produced by this structure in "build.gconf" would be:
+The files produced by this structure in "build.gproj" would be:
 
-* build_compiler_arm.cfg
-* build_compiler_gcc.cfg
-* build_compiler_msvc.cfg
+* compiler_arm.cfg
+* compiler_gcc.cfg
+* compiler_msvc.cfg
 
 #### 3.2.1 Variant Parameter
 
@@ -179,11 +170,9 @@ The "variant" parameter is followed by an identifier, which names one possible v
 
 **Parent**=layer
 
-The "prefix" parameter contains the relative path to the files containing settings for each variant.
+The "prefix" parameter contains the relative path to the files containing settings for each variant.  If omitted, the default is:
 
-If omitted, the base filename of the project's config file is used:
-
-    <basename>_<layer>_
+    <layer>_
 
 Example:
 
@@ -193,7 +182,7 @@ Example:
         prefix os/
     :end
 
-The files produced by this structure in "build.gconf" would be:
+The files produced by this structure would be:
 
 * os/posix.cfg
 * os/win32.cfg
@@ -214,10 +203,10 @@ Example:
         suffix .txt
     :end
 
-The files produced by this structure in "build.gconf" would be:
+The files produced by this structure would be:
 
-* build_os_posix.txt
-* build_os_win32.txt
+* os_posix.txt
+* os_win32.txt
 
 ##### 3.2.3.1 No Suffix
 
@@ -231,26 +220,7 @@ Example:
         suffix none
     :end
 
-The files produced by this structure in "build.gconf" would be:
+The files produced by this structure would be:
 
-* build_os_posix
-* build_os_win32
-
-### 3.3 Settings
-
-**Parent**=Top **Multiple**
-
-Settings are stored one on each line as a simple key/value pair with whitespace ignored:
-
-    [whitespace]identifier=value[whitespace]
-
-These do not need to be enclosed in a directive block, but are usually placed after the project directive.
-
-The identifier corresponds to the definition file, and the value is user-supplied.
-
-Example:
-
-    MYMODULE_ENABLED=TRUE
-    MYMODULE_FEATURE1_TEXT=This is a cool feature!
-
-The acceptable input for value is dependent upon the input type.
+* os_posix
+* os_win32
