@@ -99,7 +99,7 @@ All lines leading with a Semicolon (ASCII 59) or Hash (ASCII 35) are not process
     # This is also a comment
         ; Comments can be indented, too!
 
-Comments are not allowed at the end of a line containing other manifest content.
+Comments are not allowed at the end of a line containing other content.
 
 ### 2.2 Directives
 
