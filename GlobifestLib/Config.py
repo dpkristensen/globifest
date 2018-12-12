@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/__init__.py - globifest Tests Package
+    globifest/Config.py - globifest Configuration
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -31,23 +31,51 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__ = "Daniel Kristensen"
-__license__ = "BSD"
-__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
+from GlobifestLib import \
+    Log, \
+    Settings, \
+    Util
 
-__all__ = [
-    "Helpers",
-    "testBoundedStatefulParser",
-    "testConfig",
-    "testProjectParser",
-    "testDefinitionParser",
-    "testDefTree",
-    "testProject",
-    "testSettings",
-    "testLineInfo",
-    "testLineReader",
-    "testManifest",
-    "testManifestParser",
-    "testMatcher",
-    "testUtil"
-    ]
+class Config(object):
+    """
+        Encapsulates configuration values stored in a file.
+
+        See config-format.md for further details.
+    """
+
+    def __init__(self, filename="", err_ctx=Log.ERROR.RUNTIME, err_fatal=False):
+        self.err_ctx = err_ctx
+        self.err_fatal = err_fatal
+        self.filename = filename
+
+        self.configs = Util.Container() # Initially empty
+        self.lines = Util.Container() # Parallel container to configs
+        self.settings = None
+
+    def add_value(self, line, ident, value):
+        """Add a new configuration value"""
+        # Parameter type validation occurs later.
+        if ident in self.configs:
+            self.log_error("Duplicate value {} at {}".format(ident, line))
+        self.configs[ident] = value
+        self.lines[ident] = line
+
+    def get_filename(self):
+        """Returns the filename where the project is defined"""
+        return self.filename
+
+    def get_settings(self):
+        """Returns a Settings object containing these values"""
+        if self.settings is None:
+            self.settings = Settings.new(self.configs)
+        return self.settings
+
+    def log_error(self, msg):
+        """
+            Log an error
+
+            @note The error may not be fatal, so it should be handled as well.
+        """
+        Log.E(msg, err_type=self.err_ctx, is_fatal=self.err_fatal)
+
+new = Config

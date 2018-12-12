@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/__init__.py - globifest Tests Package
+    globifest/globitest/testConfig.py - Tests for Config module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -31,23 +31,31 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__ = "Daniel Kristensen"
-__license__ = "BSD"
-__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
+import unittest
 
-__all__ = [
-    "Helpers",
-    "testBoundedStatefulParser",
-    "testConfig",
-    "testProjectParser",
-    "testDefinitionParser",
-    "testDefTree",
-    "testProject",
-    "testSettings",
-    "testLineInfo",
-    "testLineReader",
-    "testManifest",
-    "testManifestParser",
-    "testMatcher",
-    "testUtil"
-    ]
+from GlobifestLib import \
+    Config, \
+    LineInfo, \
+    Settings, \
+    Util
+
+class TestConfig(unittest.TestCase):
+
+    def test_simple_set(self):
+        cfg = Config.new(err_fatal=True)
+        line = LineInfo.new("simple_set", 1, "stub")
+
+        cfg.add_value(line, "FOO_INT_1", "5")
+        cfg.add_value(line, "FOO_INT_2", "42")
+        cfg.add_value(line, "FOO_STR_A", "\"Text A\"")
+        cfg.add_value(line, "FOO_STR_B", "\"\"")
+
+        # Just make sure the settings exist and are evaluatable
+        settings = cfg.get_settings()
+        self.assertIsInstance(settings, Settings.Settings)
+        self.assertTrue(settings.evaluate("FOO_INT_1 == 5"))
+        self.assertFalse(settings.evaluate("FOO_INT_1 == 42"))
+        self.assertEqual("42", settings.get_value("FOO_INT_2"))
+        self.assertEqual("\"Text A\"", settings.get_value("FOO_STR_A"))
+        self.assertTrue(settings.evaluate("FOO_STR_B == ''"))
+        self.assertFalse(settings.evaluate("FOO_STR_B == 'Text A'"))
