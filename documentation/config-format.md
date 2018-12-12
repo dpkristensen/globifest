@@ -29,7 +29,44 @@ All lines leading with a Semicolon (ASCII 59) or Hash (ASCII 35) are not process
 
 Comments are not allowed at the end of a line containing other content.
 
-*NOTE* Comments in a contiguous block preceding a setting are associated with the setting, for the purposes of re-generating the file and display in the configuration interface.
+### 2.1.1 Comment Association
+
+Comments in a contiguous block preceding a setting are associated with the setting, for the purposes of re-generating the file and display in the configuration interface.
+
+When this occurs, the content of a comment is extracted and formatted for ease of use.  After the beginning of the comment, whitespace is stripped off of the remaining text to form the content.
+
+    ;      Extra whitespace!!!
+
+The content of the above comment is "Extra whitespace!!!".
+
+### 2.1.2 Multi-line Comment Formatting
+
+Multiple non-blank lines of comment content are combined together and separated by a space to form a paragraph.  However, lists can be created with one of the following:
+
+* Asterisk (*)
+* Plus sign (+)
+* Minus sign (-)
+* Hash symbol (#)
+
+Example:
+
+    ; To create a bulleted list,
+    ; this is what needs to be typed:
+    ;
+    ; * Item 1
+    ; * Item 2
+    ;
+    ; Notice the blank line between the
+    ;     paragraph and the list.
+
+This comment would have lines:
+
+* Line 1 = "To create a bulleted list, this is what needs to be typed:"
+* Line 2 = ""
+* Line 3 = "* Item 1"
+* Line 4 = "* Item 2"
+* Line 5 = ""
+* Line 6 = "Notice the blank line between the paragraph and the list."
 
 ### 2.2 Stored Settings
 

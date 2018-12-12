@@ -57,8 +57,14 @@ class Config(object):
         self.settings = None
 
     def add_value(self, line, ident, value):
-        """Add a new configuration value"""
-        # Parameter type validation occurs later.
+        """
+            Add a new configuration value
+
+            @note Parameter type validation does not occur here because the definition is unknown.
+                But the line information is included so that if an error is found, the setting
+                can be referenced.
+        """
+
         if ident in self.configs:
             self.log_error("Duplicate value {} at {}".format(ident, line))
         self.configs[ident] = value
