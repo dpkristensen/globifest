@@ -41,6 +41,18 @@ from GlobifestLib import \
 
 class TestConfig(unittest.TestCase):
 
+    def test_comments(self):
+        cfg = Config.new(err_fatal=True)
+        line = LineInfo.new("simple_set", 1, "stub")
+
+        cfg.add_value(line, "FOO_INT_1", "1")
+        cfg.add_value(line, "FOO_INT_2", "2")
+
+        cfg.set_comment(line, "FOO_INT_1", "Comment 1")
+
+        self.assertEqual("Comment 1", cfg.get_comment("FOO_INT_1"))
+        self.assertEqual("", cfg.get_comment("FOO_INT_2"))
+
     def test_simple_set(self):
         cfg = Config.new(err_fatal=True)
         line = LineInfo.new("simple_set", 1, "stub")

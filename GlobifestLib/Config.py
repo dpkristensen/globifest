@@ -49,7 +49,11 @@ class Config(object):
         self.filename = filename
 
         self.configs = Util.Container() # Initially empty
-        self.lines = Util.Container() # Parallel container to configs
+
+        # Parallel containers for metadata associated with configs
+        self.comments = Util.Container() # 0-1:1 with configs
+        self.lines = Util.Container() # 1:1 with configs
+
         self.settings = None
 
     def add_value(self, line, ident, value):
@@ -64,11 +68,21 @@ class Config(object):
         """Returns the filename where the project is defined"""
         return self.filename
 
+    def get_comment(self, ident):
+        """Returns the comment associated with ident, or empty string if none"""
+        return self.comments.get(ident, "")
+
     def get_settings(self):
         """Returns a Settings object containing these values"""
         if self.settings is None:
             self.settings = Settings.new(self.configs)
         return self.settings
+
+    def set_comment(self, line, ident, text):
+        """Sets a comment to be associated with ident"""
+        if ident in self.comments:
+            self.log_error("Cannot change comment for {} at {}".format(ident, line))
+        self.comments[ident] = text
 
     def log_error(self, msg):
         """
