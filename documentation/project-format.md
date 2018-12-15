@@ -224,3 +224,11 @@ The files produced by this structure would be:
 
 * os_posix
 * os_win32
+
+### 3.3 Package (NOT YET IMPLEMENTED)
+
+**Parent**=project **Multiple**
+
+The "package" directive defines the path to a manifest containing packages to include.  Ex:
+
+    :package Utilities/core.gman
