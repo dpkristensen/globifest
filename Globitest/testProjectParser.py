@@ -65,6 +65,8 @@ class TestProjectParser(unittest.TestCase):
                     print("  Layer({})".format(layer))
                     for variant in self.project.get_variant_names(layer):
                         print("    {}".format(variant))
+                for pkg in self.project.get_packages():
+                    print("  pkg {}".format(pkg))
 
         # Unreference the objects in reverse order
         if hasattr(self, "reader"):
@@ -97,6 +99,7 @@ class TestProjectParser(unittest.TestCase):
                     prj.get_target(actual_layer_name, actual_variant_name).filename,
                     expected_variant.filename
                     )
+        self.assertEqual(prj.get_packages(), expected.packages)
 
     def test_empty_project(self):
         self.create_parser()
@@ -110,7 +113,8 @@ class TestProjectParser(unittest.TestCase):
 
         self.verify_project(Util.Container(**{
             "name" : "MyProject",
-            "layers" : []
+            "layers" : [],
+            "packages" : []
             }))
 
     def test_layers(self):
@@ -182,7 +186,8 @@ class TestProjectParser(unittest.TestCase):
                             )
                         ]
                     )
-                ]
+                ],
+            "packages" : []
             }))
 
     def test_name_whitespace(self):
@@ -194,5 +199,24 @@ class TestProjectParser(unittest.TestCase):
 
         self.verify_project(Util.Container(**{
             "name" : "My Project",
-            "layers" : []
+            "layers" : [],
+            "packages" : []
+            }))
+
+    def test_packages(self):
+        self.create_parser()
+        self.parse_lines(
+            ":project MyProject",
+            "    :package package1.gman",
+            "    :package ./package2.mfg",
+            ":end"
+            )
+
+        self.verify_project(Util.Container(**{
+            "name" : "MyProject",
+            "layers" : [],
+            "packages" : [
+                "package1.gman",
+                "./package2.mfg"
+                ]
             }))

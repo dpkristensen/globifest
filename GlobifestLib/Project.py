@@ -53,6 +53,7 @@ class Project(object):
         self.err_fatal = err_fatal
         self.filename = filename
         self.prj_name = None
+        self.packages = []
 
     def add_layer(self, layer_name):
         """Push a new layer onto the stack"""
@@ -61,6 +62,10 @@ class Project(object):
             variants=list()
             )
         self.layers.append(layer_ref)
+
+    def add_package(self, filename):
+        """Add a package to the project"""
+        self.packages.append(filename)
 
     def add_variant(self, layer_name, variant_name, filename):
         """Add a new variant into the layer"""
@@ -80,6 +85,10 @@ class Project(object):
     def get_layer_names(self):
         """Return a list of the names of each layer, from lowest to highest"""
         return [layer.name for layer in self.layers]
+
+    def get_packages(self):
+        """Return a list of packages"""
+        return self.packages
 
     def get_name(self):
         """Returns the name of the project"""

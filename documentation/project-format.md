@@ -225,7 +225,7 @@ The files produced by this structure would be:
 * os_posix
 * os_win32
 
-### 3.3 Package (NOT YET IMPLEMENTED)
+### 3.3 Package
 
 **Parent**=project **Multiple**
 

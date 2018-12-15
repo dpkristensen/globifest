@@ -51,6 +51,8 @@ class TestProject(unittest.TestCase):
         prj.add_variant("layer1", "variant1.2", "l1_v1_2.cfg")
         prj.add_layer("layer2")
         prj.add_variant("layer2", "variant2.1", "l2_v2_1.cfg")
+        prj.add_package("path/to/pkg1.mfg")
+        prj.add_package("package2.mfg")
 
         self.assertEqual(prj.get_target("layer1", "variant1.1").filename, "l1_v1_1.cfg")
         self.assertEqual(prj.get_target("layer1", "variant1.2").filename, "l1_v1_2.cfg")
@@ -80,3 +82,5 @@ class TestProject(unittest.TestCase):
                 cfg_c1="C1"
                 )
             )
+
+        self.assertEqual(prj.get_packages(), ["path/to/pkg1.mfg", "package2.mfg"])

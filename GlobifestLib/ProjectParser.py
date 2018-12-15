@@ -182,6 +182,11 @@ class ProjectParser(Log.Debuggable):
                 "layer[ \t]+(.+)$",
                 regex_flags
                 )
+        with Log.CaptureStdout(self, "PACKAGE_RE:"):
+            self.package_re = re.compile(
+                "package[ \t]+(.+)$",
+                regex_flags
+                )
 
         # Block parameter regex
         with Log.CaptureStdout(self, "BLOCK_PARAM_RE::"):
@@ -296,6 +301,16 @@ class ProjectParser(Log.Debuggable):
         self.debug("  {}".format(name))
         self.context_stack.append(new_context)
 
+    def _package(self, name):
+        """Process a package"""
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [Context.CTYPE.PROJECT]:
+            self.log_error("package is not allowed in this scope")
+
+        self.debug("  {}".format(name))
+        self.config_project.add_package(name)
+
     def _project_end(self, context):
         """
             End a project block
@@ -347,6 +362,9 @@ class ProjectParser(Log.Debuggable):
         elif m.is_fullmatch(self.project_re):
             self.debug("PROJECT: {}".format(m[1]))
             self._project_start(m[1])
+        elif m.is_fullmatch(self.package_re):
+            self.debug("PACKAGE: {}".format(m[1]))
+            self._package(m[1])
         elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._block_end()
