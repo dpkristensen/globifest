@@ -57,10 +57,10 @@ class Context(object):
         "PROJECT"
         )
 
-    def __init__(self, config_parser, prev_context=None, line_info=None, ctx=None):
+    def __init__(self, project_parser, prev_context=None, line_info=None, ctx=None):
         """Initialize the top (file-scope) nesting level"""
 
-        self.config_parser = config_parser
+        self.project_parser = project_parser
 
         if prev_context is None:
             self.level = 0
@@ -96,35 +96,35 @@ class Context(object):
         """Return whether name is in elements, and is not already stored in ctx"""
 
         if name not in elements.keys():
-            self.config_parser.log_error("Invalid parameter: {}".format(name))
+            self.project_parser.log_error("Invalid parameter: {}".format(name))
 
         if self.ctx[elements[name]] is not None:
-            self.config_parser.log_error("Redefinition of {}".format(name))
+            self.project_parser.log_error("Redefinition of {}".format(name))
 
         return True
 
     def process_param(self, name, value):
         """Process a parameter in context"""
         if self.ctx.ctype == Context.CTYPE.PROJECT:
-            self.config_parser.log_error("Projects have no parameters")
+            self.project_parser.log_error("Projects have no parameters")
         if self.ctx.ctype == Context.CTYPE.LAYER:
             self.process_param_layer(name, value)
 
     def process_param_layer(self, name, value):
         """Process a layer parameter"""
         if not value:
-            self.config_parser.log_error("Bad parameter: {}".format(value))
+            self.project_parser.log_error("Bad parameter: {}".format(value))
 
         if name == "variant":
             if re.fullmatch(IDENTIFIER_NAME, value):
                 self.ctx.variants.append(value)
             else:
-                self.config_parser.log_error("Invalid identifier: {}".format(value))
+                self.project_parser.log_error("Invalid identifier: {}".format(value))
         elif self.is_unique_element(LAYER_ELEMENTS, name):
             # No additional validation required for these elements
             self.ctx[LAYER_ELEMENTS[name]] = value
         else:
-            self.config_parser.debug("not found: {}".format(name))
+            self.project_parser.debug("not found: {}".format(name))
 
     def validate_layer(self):
         """Validate the final state of a layer context"""
@@ -136,27 +136,27 @@ class Context(object):
 
         # Validate required fields
         if not self.ctx.variants:
-            self.config_parser.log_error("Layer {} has no variants".format(self.ctx.layer_name))
+            self.project_parser.log_error("Layer {} has no variants".format(self.ctx.layer_name))
 
     def validate_project(self):
         """Validate the final state of a project context"""
         # Validate required fields
         if not self.ctx.prj_name:
-            self.config_parser.log_error("Missing project name")
+            self.project_parser.log_error("Missing project name")
 
 class ProjectParser(Log.Debuggable):
     """
-        Encapsulates logic to parse a configuration file
+        Encapsulates logic to parse a project file
     """
 
     def __init__(self, project, debug_mode=False):
         Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
-        self.config_project = project
+        self.project = project
         self.line_info = None
 
         # Always has a context
-        top_context = Context(config_parser=self)
+        top_context = Context(project_parser=self)
         self.context_stack = [top_context]
 
         regex_flags = 0
@@ -194,7 +194,7 @@ class ProjectParser(Log.Debuggable):
 
     def get_target(self):
         """Returns the target Project which is being parsed"""
-        return self.config_project
+        return self.project
 
     def log_error(self, err_text):
         """
@@ -231,7 +231,7 @@ class ProjectParser(Log.Debuggable):
 
     def parse_end(self):
         """
-            End parsing of the config file
+            End parsing of the project file
         """
         if not self.context_stack:
             self.log_error("Invalid post-parsing state")
@@ -267,9 +267,9 @@ class ProjectParser(Log.Debuggable):
 
             Save the layer
         """
-        self.config_project.add_layer(context.ctx.layer_name)
+        self.project.add_layer(context.ctx.layer_name)
         for variant in context.ctx.variants:
-            self.config_project.add_variant(
+            self.project.add_variant(
                 context.ctx.layer_name,
                 variant,
                 context.ctx.prefix + variant + context.ctx.suffix # Filename
@@ -287,7 +287,7 @@ class ProjectParser(Log.Debuggable):
             self.log_error("layer is not allowed in this scope")
 
         new_context = Context(
-            config_parser=self,
+            project_parser=self,
             prev_context=cur_context,
             line_info=self.line_info,
             ctx=Util.Container(
@@ -309,7 +309,7 @@ class ProjectParser(Log.Debuggable):
             self.log_error("package is not allowed in this scope")
 
         self.debug("  {}".format(name))
-        self.config_project.add_package(name)
+        self.project.add_package(name)
 
     def _project_end(self, context):
         """
@@ -317,12 +317,12 @@ class ProjectParser(Log.Debuggable):
 
             Save the project
         """
-        if self.config_project.get_name() is not None:
+        if self.project.get_name() is not None:
             self.log_error("Cannot redefine project")
 
-        self.config_project.set_name(context.ctx.prj_name)
+        self.project.set_name(context.ctx.prj_name)
 
-        assert self.config_project is not None
+        assert self.project is not None
 
     def _project_start(self, name):
         """
@@ -335,11 +335,11 @@ class ProjectParser(Log.Debuggable):
         if ctype not in [None]:
             self.log_error("project is not allowed in this scope")
 
-        if self.config_project.get_name() is not None:
+        if self.project.get_name() is not None:
             self.log_error("Cannot define multiple projects")
 
         new_context = Context(
-            config_parser=self,
+            project_parser=self,
             prev_context=cur_context,
             line_info=self.line_info,
             ctx=Util.Container(

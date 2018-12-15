@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/Project.py - globifest Configuration Project
+    globifest/Project.py - globifest Project
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -128,7 +128,9 @@ class Project(object):
         elif self.prj_name is None:
             self.prj_name = name
         else:
-            self.log_error("Cannot set project name twice. cur={} new={}".format(self.prj_name, name))
+            self.log_error(
+                "Cannot set project name twice. cur={} new={}".format(self.prj_name, name)
+                )
 
     def _get_layer_ref(self, layer_name):
         """@return reference to the layer, or None if not found"""
