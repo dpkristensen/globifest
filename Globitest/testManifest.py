@@ -38,6 +38,16 @@ from Globitest import Helpers
 
 class TestManifest(unittest.TestCase):
 
+    def test_configs(self):
+        manifest = Manifest.new(Helpers.TEST_FNAME)
+        self.assertEqual(manifest.get_configs(), [])
+
+        manifest.add_config(123) # Data type is irrelevant
+        self.assertEqual(manifest.get_configs(), [123])
+
+        manifest.add_config(456)
+        self.assertEqual(manifest.get_configs(), [123, 456])
+
     def test_data(self):
         manifest = Manifest.new(Helpers.TEST_FNAME)
 

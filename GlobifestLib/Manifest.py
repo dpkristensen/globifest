@@ -41,6 +41,7 @@ class Manifest:
     def __init__(self, fname):
         self.out = Util.Container()
         self.fname = fname
+        self.configs = []
 
     def __str__(self):
         outstr = "File: {}".format(self.fname)
@@ -51,6 +52,10 @@ class Manifest:
 
         return outstr
 
+    def add_config(self, config):
+        """Add configuration information"""
+        self.configs.append(config)
+
     def add_entry(self, typename, entry):
         """Add an entry of the given type"""
         if entry:
@@ -59,6 +64,10 @@ class Manifest:
     def add_type(self, typename):
         """Add a table to the output for the given type"""
         self.out[typename] = []
+
+    def get_configs(self):
+        """Returns the associated configuration information"""
+        return self.configs
 
     def get_filename(self):
         """Returns the filename of the manifest"""
