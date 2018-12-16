@@ -168,7 +168,11 @@ class Context(object):
         # Condition expression is completely parsed
         expr = self.context_parser.get_parsed_text()
 
-        result = self.manifest_parser.settings.evaluate(expr)
+        try:
+            result = self.manifest_parser.settings.evaluate(expr)
+        except Log.GlobifestException as e:
+            # Add line context to this error
+            self.manifest_parser.log_error("Failed to evaluate expression")
         self.manifest_parser.debug("COND EXPR: '{}' = {}".format(expr, result))
 
         if self.context_parser.get_remaining_text():
