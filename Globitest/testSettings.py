@@ -61,7 +61,10 @@ class TestSettings(unittest.TestCase):
         del self.pipe
 
     def create_config_set(self, config = Util.Container()):
-        self.config = Settings.new(
+        self.config = self.new_settings(config)
+
+    def new_settings(self, config):
+        return Settings.new(
             configs = config,
             debug_mode = True
             )
@@ -126,6 +129,20 @@ class TestSettings(unittest.TestCase):
         self.assertTrue(self.config.evaluate("TRUE || FALSE"))
         self.assertTrue(self.config.evaluate("FALSE || TRUE"))
         self.assertTrue(self.config.evaluate("TRUE || TRUE"))
+
+    def test_extend(self):
+        self.create_config_set(Util.Container(
+            a="12",
+            b="34"
+            ))
+        self.config.extend(self.new_settings(Util.Container(
+            b="56",
+            c="78"
+        )))
+
+        self.assertTrue(self.config.evaluate("a==12"))
+        self.assertTrue(self.config.evaluate("b==56"))
+        self.assertTrue(self.config.evaluate("c==78"))
 
     def test_ident_not_found(self):
         self.create_config_set()

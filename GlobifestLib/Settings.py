@@ -413,13 +413,12 @@ class Settings(Log.Debuggable):
         Encapsulates a set of configuration values
     """
 
-    def __init__(self, configs, debug_mode=False):
+    def __init__(self, configs=Util.Container(), debug_mode=False):
         Log.Debuggable.__init__(self, debug_mode)
-        self.configs = configs
 
-        for k, _v in configs:
-            if k in RESERVED_IDENT_MAP:
-                self.Logs.E("Identifier {} is reserved".format(k))
+        # Add the configs through extend() for validation
+        self.configs = Util.Container()
+        self.extend(configs)
 
         self.ident_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
         self.string_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
@@ -432,6 +431,17 @@ class Settings(Log.Debuggable):
     def __str__(self):
         outstr = "Configs:\n" + str(self.configs)
         return outstr
+
+    def extend(self, new_configs):
+        """Extend the settings to add/replace values from new_configs"""
+        if isinstance(new_configs, Settings):
+            new_configs = new_configs.configs
+
+        for k, v in new_configs:
+            if k in RESERVED_IDENT_MAP:
+                self.Logs.E("Identifier {} is reserved".format(k))
+            else:
+                self.configs[k] = v
 
     def get_value(self, name):
         """Returns the configuration value of the identifier"""
