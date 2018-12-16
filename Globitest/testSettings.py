@@ -144,6 +144,18 @@ class TestSettings(unittest.TestCase):
         self.assertTrue(self.config.evaluate("b==56"))
         self.assertTrue(self.config.evaluate("c==78"))
 
+    def test_ident_as_value(self):
+        self.create_config_set(Util.Container(
+            bTrue="TRUE",
+            bFalse="FALSE",
+            i1="1",
+            i0="0"
+            ))
+        self.assertTrue(self.config.evaluate("bTrue"))
+        self.assertFalse(self.config.evaluate("bFalse"))
+        self.assertTrue(self.config.evaluate("i1"))
+        self.assertFalse(self.config.evaluate("i0"))
+
     def test_ident_not_found(self):
         self.create_config_set()
         try:

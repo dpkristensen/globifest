@@ -592,7 +592,13 @@ class Settings(Log.Debuggable):
 
         if tok is None:
             Log.E("Cannot evaluate expression")
-        elif isinstance(tok, BoolToken):
+
+        # Convert lone identifier tokens to their value type for evaluation
+        if isinstance(tok, IdentToken):
+            self.debug("convert->{}".format(tok.ident_class.TOKEN_TYPE))
+            tok = tok.ident_class(tok.value)
+
+        if isinstance(tok, BoolToken):
             return tok.value
         elif isinstance(tok, IntToken):
             return tok.value != 0
