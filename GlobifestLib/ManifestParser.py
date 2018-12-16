@@ -34,6 +34,7 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
 import pathlib
 import re
 
@@ -200,6 +201,7 @@ class ManifestParser(Log.Debuggable):
         self.manifest = manifest
         self.validate_files = validate_files
         self.line_info = None
+        self.pkg_root = os.path.dirname(manifest.get_filename())
 
         # Always has a context
         top_context = Context(manifest_parser=self)
@@ -387,6 +389,8 @@ class ManifestParser(Log.Debuggable):
             self.log_error("Missing label for entry {}".format(entry))
 
         if self.validate_files:
+            # When validating files (i.e., a real build), change to absolute path
+            entry = Util.get_abs_path(entry, self.pkg_root)
             if cur_context.label in FILE_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_file():

@@ -33,6 +33,7 @@
 
 import copy
 import inspect
+import os
 
 def create_enum(*identifiers):
     """
@@ -65,6 +66,14 @@ def create_flag_enum(*identifiers):
     bits["__str__"] = _enum_str
 
     return type('FlagEnum', (), bits)
+
+
+def get_abs_path(path, base):
+    """Convert the path (absolute or relative to base) into a normalized absolute path"""
+    new_path = path
+    if not os.path.isabs(path):
+        new_path = os.path.join(base, path)
+    return os.path.normpath(new_path)
 
 
 def get_line_number(levels=1):
