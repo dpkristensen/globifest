@@ -105,3 +105,6 @@ venv.bak/
 
 # IDE settings
 .vscode/
+
+# Build output for sample code
+_Output
