@@ -69,14 +69,38 @@ COND_STATE = Util.create_enum(
     "SATISFIED"
     )
 
-
 class Context(object):
+    """
+        Base class for parsing contexts
+    """
+
+    CTYPE = Util.create_enum(
+        "CONDITION"
+        )
+
+    def __init__(self, ctype):
+        """Initializes shared context info"""
+        self.ctype = ctype
+
+    def get_ctype(self):
+        """Returns the context type"""
+        return self.ctype
+
+    def has_parameters(self):
+        """Returns whether this type of context has parameters"""
+        if self.ctype == Context.CTYPE.CONDITION:
+            return False
+
+        return True
+
+class ConditionContext(Context):
     """
         Encapsulates contextual information for a nesting level
     """
 
     def __init__(self, manifest_parser, prev_context=None, line_info=None, context_parser=None):
         """Initialize the top (file-scope) nesting level"""
+        Context.__init__(self, Context.CTYPE.CONDITION);
 
         self.manifest_parser = manifest_parser
 
@@ -204,7 +228,7 @@ class ManifestParser(Log.Debuggable):
         self.pkg_root = os.path.dirname(manifest.get_filename())
 
         # Always has a context
-        top_context = Context(manifest_parser=self)
+        top_context = ConditionContext(manifest_parser=self)
         self.context_stack = [top_context]
 
         regex_flags = 0
@@ -224,8 +248,8 @@ class ManifestParser(Log.Debuggable):
             self.condition_elif_re = re.compile("elif(.*)", regex_flags)
         with Log.CaptureStdout(self, "CONDITION_ELSE_RE:"):
             self.condition_else_re = re.compile("else$", regex_flags)
-        with Log.CaptureStdout(self, "CONDITION_END_RE:"):
-            self.condition_end_re = re.compile("end$", regex_flags)
+        with Log.CaptureStdout(self, "BLOCK_END_RE:"):
+            self.block_end_re = re.compile("end$", regex_flags)
         with Log.CaptureStdout(self, "LABEL_RE:"):
             self.label_re = re.compile("([a-z_]+)", regex_flags)
 
@@ -302,7 +326,7 @@ class ManifestParser(Log.Debuggable):
 
             Push a new context onto the stack and start looking for an expression
         """
-        new_context = Context(
+        new_context = ConditionContext(
             manifest_parser=self,
             prev_context=self.context_stack[-1],
             line_info=self.line_info,
@@ -349,8 +373,29 @@ class ManifestParser(Log.Debuggable):
         """
             Parse directive text
         """
-        m = Matcher.new(text)
+        if not self.context_stack:
+            self.log_error("Unknown error")
+            return
 
+        m = Matcher.new(text)
+        cur_context = self.context_stack[-1]
+
+        ok = False
+        if cur_context.has_parameters():
+            self.log_error("Not yet supported")
+        else:
+            ok = self._parse_directive_entry_content(m)
+
+        if not ok:
+            self.log_error("Bad directive '{}'".format(text))
+
+    def _parse_directive_entry_content(self, matcher):
+        """
+            Parse directives with entry content (as opposed to parameter content)
+
+            Returns whether the line was parsed successfully
+        """
+        m = matcher
         if m.is_fullmatch(self.condition_if_re):
             self.debug("IF: {}".format(m[1]))
             self._condition_start_if(m[1].lstrip())
@@ -360,15 +405,17 @@ class ManifestParser(Log.Debuggable):
         elif m.is_fullmatch(self.condition_else_re):
             self.debug("ELSE")
             self._condition_start_else()
-        elif m.is_fullmatch(self.condition_end_re):
+        elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._condition_end()
         elif m.is_fullmatch(self.label_re):
             self.debug("LABEL: {}".format(m[1]))
             # Label directive (:x)
             self._parse_directive_label(m[1])
-        elif not m.found:
-            self.log_error("Bad directive '{}'".format(text))
+        else:
+            return False
+
+        return True
 
     def _parse_directive_label(self, label):
         """

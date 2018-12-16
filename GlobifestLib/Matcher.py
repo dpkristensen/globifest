@@ -73,4 +73,8 @@ class Matcher:
 
         return self.found
 
+    def was_found(self):
+        """Return whether a result was found"""
+        return self.found
+
 new = Matcher
