@@ -174,12 +174,12 @@ class ProjectParser(Log.Debuggable):
             self.block_end_re = re.compile("end$", regex_flags)
         with Log.CaptureStdout(self, "PROJECT_RE:"):
             self.project_re = re.compile(
-                "project[ \t]+(.+)$",
+                "project[ \t]+(" + IDENTIFIER_NAME + ")$",
                 regex_flags
                 )
         with Log.CaptureStdout(self, "LAYER_RE:"):
             self.layer_re = re.compile(
-                "layer[ \t]+(.+)$",
+                "layer[ \t]+(" + IDENTIFIER_NAME + ")$",
                 regex_flags
                 )
         with Log.CaptureStdout(self, "PACKAGE_RE:"):

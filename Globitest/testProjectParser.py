@@ -193,12 +193,12 @@ class TestProjectParser(unittest.TestCase):
     def test_name_whitespace(self):
         self.create_parser()
         self.parse_lines(
-            ":project \tMy Project ",
+            ":project \tMy_Project ",
             ":end",
             )
 
         self.verify_project(Util.Container(**{
-            "name" : "My Project",
+            "name" : "My_Project",
             "layers" : [],
             "packages" : []
             }))

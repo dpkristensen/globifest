@@ -124,19 +124,21 @@ Within some entries there may be parameters (one on each line) of the form:
 
 Note that trailing whitespace is ignored.
 
+### 2.5 Identifier Naming
+
+An identifier is a symbolic name for the element.  It must only include one or more characters of the set {a-z,A-Z,0-9,_}, no whitespace is allowed
+
 ## 3 Configuration Elements
 
 ### 3.1 Project Structure
 
 **Parent**=Top
 
-The "project" directive is used to start a block defining the structure.  Files which are only included in another project (i.e., as a layer variant) should not have this block.
-
-The project must be followed by a human readable name.
+The "project" directive is used to start a block defining the structure, and must be followed by an identifier (which is the name of the project).
 
 Example:
 
-    :project My Project
+    :project MyProject
         # ... project contents go here
     :end
 
