@@ -42,6 +42,7 @@ __all__ = [
     "ConfigParser",
     "DefinitionParser",
     "DefTree",
+    "Generators",
     "LineInfo",
     "LineReader",
     "Log",

@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/__init__.py - globifest Tests Package
+    globifest/globitest/testGenerators.py - Tests for Generators module
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -31,25 +31,41 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__ = "Daniel Kristensen"
-__license__ = "BSD"
-__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
+import unittest
 
-__all__ = [
-    "Helpers",
-    "testBoundedStatefulParser",
-    "testConfig",
-    "testConfigParser",
-    "testDefinitionParser",
-    "testDefTree",
-    "testGenerators",
-    "testLineInfo",
-    "testLineReader",
-    "testManifest",
-    "testManifestParser",
-    "testMatcher",
-    "testProject",
-    "testProjectParser",
-    "testSettings",
-    "testUtil"
-    ]
+from GlobifestLib import Generators
+
+class TestGenerators(unittest.TestCase):
+
+    def test_c(self):
+        generator = Generators.factory(
+            gen_format="C", # Case-insensitive
+            filename="config.h",
+            formatter="ignored"
+        )
+        self.assertIsNotNone(generator)
+        self.assertEqual(generator.get_filename(), "config.h")
+        self.assertEqual(generator.FORMAT_TYPE, "c")
+        self.assertEqual(generator.get_formatter(), None)
+
+    def test_java(self):
+        generator = Generators.factory(
+            gen_format="jAVa", # Case-insensitive
+            filename="config.java",
+            formatter="irrelevant"
+        )
+        self.assertIsNotNone(generator)
+        self.assertEqual(generator.get_filename(), "config.java")
+        self.assertEqual(generator.FORMAT_TYPE, "java")
+        self.assertEqual(generator.get_formatter(), None)
+
+    def test_custom(self):
+        generator = Generators.factory(
+            gen_format="CusToM", # Case-insensitive
+            filename="config.bin",
+            formatter="bin_formatter.py"
+        )
+        self.assertIsNotNone(generator)
+        self.assertEqual(generator.get_filename(), "config.bin")
+        self.assertEqual(generator.FORMAT_TYPE, "custom")
+        self.assertEqual(generator.get_formatter(), "bin_formatter.py")
