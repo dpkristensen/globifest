@@ -130,7 +130,7 @@ class Context(object):
         """Validate the final state of a layer context"""
         # Set defaults
         if not self.ctx.prefix:
-            self.ctx.prefix = self.prev_context.ctx.prj_name + "_" + self.ctx.layer_name + "_"
+            self.ctx.prefix = self.ctx.layer_name + "_"
         if not self.ctx.suffix:
             self.ctx.suffix = ".cfg"
 

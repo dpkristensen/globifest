@@ -148,7 +148,7 @@ class TestProjectParser(unittest.TestCase):
                     variants=[
                         Util.Container(
                             name="SugarFlakes",
-                            filename="Breakfast_cereal_SugarFlakes.cfg"
+                            filename="cereal_SugarFlakes.cfg"
                             )
                         ]
                     ),
@@ -157,15 +157,15 @@ class TestProjectParser(unittest.TestCase):
                     variants=[
                         Util.Container(
                             name="Apple",
-                            filename="Breakfast_fruit_Apple.yum"
+                            filename="fruit_Apple.yum"
                             ),
                         Util.Container(
                             name="Banana",
-                            filename="Breakfast_fruit_Banana.yum"
+                            filename="fruit_Banana.yum"
                             ),
                         Util.Container(
                             name="Pear",
-                            filename="Breakfast_fruit_Pear.yum"
+                            filename="fruit_Pear.yum"
                             )
                         ]
                     ),
