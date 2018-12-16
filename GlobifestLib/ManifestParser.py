@@ -343,7 +343,7 @@ class ManifestParser(Log.Debuggable):
         """
             Parse directive text
         """
-        m = Matcher.new(text.lower())
+        m = Matcher.new(text)
 
         if m.is_fullmatch(self.condition_if_re):
             self.debug("IF: {}".format(m[1]))
