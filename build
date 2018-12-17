@@ -34,9 +34,129 @@
 """
 
 import argparse
-import re
+import os
+import sys
 
-from GlobifestLib import Settings, Builder, Log, Util
+from GlobifestLib import Builder, Log, ManifestParser, Util
+
+def build_prebuild(_arg, metadata):
+    """
+        Callback prior to iterating over packages
+
+        Preconditions guaranteed by Builder:
+        1. Metadata contains:
+           * prj_dir - Absolute path to project file
+           * out_dir - Absolute path to output directory
+           * settings - Merged (effective) settings for the project
+        2. Output directory exists
+    """
+    # No need to makedirs first, metadata.out_dir will be created automatically
+    settings_out_file = Util.get_abs_path("settings.lst", metadata.out_dir)
+    Log.I("Writing settings to {}".format(settings_out_file))
+    with open(settings_out_file, mode="wt") as f:
+        metadata.settings.write_sorted(f)
+
+def build_postprocess(_arg, metadata):
+    """
+        Callback after processing manifests
+
+        Preconditions guaranteed by Builder:
+        1. The prebuild step has been run
+        2. Packages have been parsed
+        3. Metadata now also contains
+           * pub_includes - Include directories accessible to all packages
+           * pub_defines - Definitions accessible to all packages
+    """
+    Log.I("Public entries:")
+    for k in ManifestParser.PUBLIC_LABELS:
+        out_file = Util.get_abs_path("{}.lst".format(k), metadata.out_dir)
+        Log.I("  {}: {}".format(k, out_file))
+        with open(out_file, mode="wt") as f:
+            for e in sorted(metadata[k]):
+                f.write("{}\n".format(e))
+
+
+def build_target(_arg, metadata, name, tables):
+    """
+        Callback when a target is processed
+
+        Preconditions guaranteed by Builder:
+        1. The postprocess step has been run
+        2. Package name is the base file name relative to the project file.
+        3. tables contains data specific to this target:
+           * prv_includes - Include directories accessible to files in this package
+           * prv_defines - Definitions accessible to files in this package
+           * sources - Source files for this package
+           * aux_files - Auxiliary files associated with this package
+    """
+    Log.I("Target {} entries:".format(name))
+    for k, v in tables:
+        out_file = Util.get_abs_path("{}.{}.lst".format(name, k), metadata.out_dir)
+        Log.I("  {}: {}".format(k, out_file))
+        # makedirs in case the manifest is several folders down
+        os.makedirs(os.path.dirname(out_file), exist_ok=True)
+        with open(out_file, mode="wt") as f:
+            for e in sorted(v):
+                f.write("{}\n".format(e))
+
+def parse_args():
+    """Parse command-line arguments and return the results"""
+
+    parser = argparse.ArgumentParser(
+        description="Global Package Manifest Builder",
+        prefix_chars="-/",
+        fromfile_prefix_chars="@"
+        )
+
+    # Additional help options; but no need to clutter up the help text
+    parser.add_argument(
+        "-?", "/?",
+        help=argparse.SUPPRESS,
+        action="help"
+        )
+
+    parser.add_argument(
+        "-i",
+        help="Package file to parse",
+        action="store",
+        dest="in_fname",
+        type=str,
+        metavar="filename",
+        required=True
+        )
+
+    parser.add_argument(
+        "-o",
+        help="Where to save output",
+        action="store",
+        dest="out_dir",
+        type=str,
+        metavar="directory",
+        required=True
+        )
+
+    parser.add_argument(
+        "-v",
+        help="Logging verbosity (combine for higher levels, up to 2 times; default=0)",
+        action="count",
+        default=0,
+        dest="verbose"
+        )
+
+    parser.add_argument(
+        "config",
+        help="Configuration of each layer (ex: os=windows)",
+        action="append",
+        nargs="*"
+    )
+
+    # Print help if no arguments passed
+    arg_list = sys.argv[1:]
+    if not arg_list:
+        parser.print_help()
+        sys.exit(1)
+
+    return parser.parse_args(args=arg_list)
 
 def run_cmd():
     """
@@ -46,138 +166,39 @@ def run_cmd():
     @returntype int
     """
 
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Global Package Manifest Builder",
-        fromfile_prefix_chars="@",
-        epilog="\n".join([
-            "Confguration examples:",
-            "    os=\"linux\" module=\"foobaz\"",
-            "    max_threads=1",
-            "    do_logging  (evaluates to empty string)",
-            "    text=\"This is all one value\"",
-            "    @my_settings.cfg  (imports settings from my_settings.cfg)"
-            ])
-        )
-    parser.add_argument(
-        "-i", "--input",
-        help="package file to parse",
-        action="store",
-        dest="in_fname",
-        type=str,
-        metavar="fname",
-        required=True
-        )
+    ret = 0
 
-    parser.add_argument(
-        "-o", "--output",
-        help="Where to save output",
-        action="store",
-        dest="out_fname",
-        type=str,
-        metavar="name",
-        required=True
-        )
-
-    parser.add_argument(
-        "--pre",
-        help="Prefix to print before the list of entries in the output (default=\"\")",
-        action="store",
-        dest="pre",
-        type=str,
-        default="",
-        metavar="text"
-        )
-
-    parser.add_argument(
-        "--format",
-        help="\n".join([
-            "Format string to apply to each entry in the output (default=\"{}\\n\")",
-            "The items appear as follows:",
-            "    {} = Entry text (header file, etc...)"
-            ]),
-        action="store",
-        dest="format_str",
-        type=str,
-        default="{}\n",
-        metavar="format"
-        )
-
-    parser.add_argument(
-        "--post",
-        help="Suffix to print after the list of entries in the output (default=\"\")",
-        action="store",
-        dest="post",
-        type=str,
-        default="",
-        metavar="text"
-        )
-
-    parser.add_argument(
-        "-v", "--verbose",
-        help="Print verbose output to stdout (0=None (default), 1=Basic, 2=Verbose, 3=Extreme)",
-        action="store",
-        dest="verbose",
-        type=int,
-        default=0,
-        metavar="level"
-        )
-
-    parser.add_argument(
-        help="Configuration options",
-        nargs="*",
-        dest="configlist",
-        type=str,
-        metavar="variable=value"
-        )
-
-    args = parser.parse_args()
-
-    Log.Logger.set_level(args.verbose)
+    # Parse arguments and set verbosity level
+    args = parse_args()
+    Log.Logger.set_level(args.verbose + 1)
 
     try:
-
         Log.D("In:      {}".format(args.in_fname))
-        Log.D("Out:     {}".format(args.out_fname))
-        Log.D("Pre:     {}".format(args.pre))
-        Log.D("Format:  {}".format(args.format_str))
-        Log.D("Post:    {}".format(args.post))
+        Log.D("Out:     {}".format(args.out_dir))
+        Log.D("Config:")
+        for c in args.config:
+            Log.D("    {}".format(c))
 
-        pair_regex = re.compile("([^=]*)=\"?(.*?)\"?$", re.MULTILINE)
-        single_regex = re.compile("([^=]*)", re.MULTILINE)
+        # Set up callbacks for Builder
+        callbacks = Util.Container(
+            prebuild=build_prebuild,
+            target=build_target
+        )
 
-        manifest_configs = Util.Container()
-
-        Log.D("Configs:")
-        for config in args.configlist:
-            m = pair_regex.fullmatch(config)
-            if m:
-                # Pair config
-                manifest_configs[m.group(1)] = m.group(2)
-            else:
-                m = single_regex.fullmatch(config)
-                if m:
-                    manifest_configs[m.group(1)] = None
-
-            if m:
-                value = manifest_configs[m.group(1)]
-                Log.D("  {} = {}({})".format(m.group(1), type(value).__name__, value))
-            else:
-                Log.E("Invalid config: {}".format(config), Log.ERROR.INPUT)
-
-        manifest = Builder.build_manifest(args.in_fname, Settings.new(manifest_configs))
+        Builder.build_project(
+            args.in_fname,
+            args.out_dir,
+            # The config argument is unnamed, but argparse still makes a 2D list out of it.
+            # Since it consumes all remaining arguments, they will all be in the first element.
+            args.config[0],
+            callbacks
+            )
     except Log.GlobifestException as e:
         # The logger prints these already, no need to print again
         print("FAILED")
-        return e.get_type()
+        ret = e.get_type()
 
-    print("MANIFEST_OUTPUT:")
-    print(manifest.get_output())
-    #TODO: Build an output file with this
-
-    return 0
+    return ret
 
 if __name__ == "__main__":
-    #exit(run_cmd())
-    print("Not yet implemented")
-    exit(-1)
+    exit(run_cmd())

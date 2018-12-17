@@ -34,6 +34,7 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import glob
 import os
 import pathlib
 import re
@@ -599,9 +600,13 @@ class ManifestParser(Log.Debuggable):
             # When validating files (i.e., a real build), change to absolute path
             entry = Util.get_abs_path(entry, self.pkg_root)
             if cur_context.label in FILE_LABELS:
-                path = pathlib.Path(entry)
-                if not path.is_file():
-                    self.log_error("'{}' is not a file".format(entry))
+                path = None
+                for f in glob.iglob(entry):
+                    path = pathlib.Path(f)
+                    if not path.is_file():
+                        self.log_error("'{}' is not a file".format(f))
+                if path is None:
+                    self.log_error("'{}' does not match any files".format(entry))
             elif cur_context.label in PATH_LABELS:
                 path = pathlib.Path(entry)
                 if not path.is_dir():
@@ -612,7 +617,13 @@ class ManifestParser(Log.Debuggable):
             self.debug("SKIP_ENTRY: {}".format(entry))
             return
 
-        self.debug("ADD_ENTRY: {}".format(entry))
-        self.manifest.add_entry(cur_context.label, entry)
+        if (cur_context.label in FILE_LABELS) and (self.validate_files):
+            for f in glob.iglob(entry):
+                self.debug("ADD_FILE: {}".format(f))
+                self.manifest.add_entry(cur_context.label, f)
+        else:
+            self.debug("ADD_ENTRY: {}".format(entry))
+            self.manifest.add_entry(cur_context.label, entry)
+
 
 new = ManifestParser

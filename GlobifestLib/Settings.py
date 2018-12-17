@@ -605,4 +605,9 @@ class Settings(Log.Debuggable):
         else:
             Log.E("Expression of type '{}' is not convertible to bool".format(tok.TOKEN_TYPE))
 
+    def write_sorted(self, fileobj):
+        """Write the configs to fileobj, sorted by key"""
+        for v in sorted(self.configs.keys()):
+            fileobj.write("{}={}\n".format(v, self.configs[v]))
+
 new = Settings
