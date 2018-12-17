@@ -33,6 +33,92 @@
 
 from GlobifestLib import LineInfo, Log
 
+class OpenFileCM(object):
+    """
+        Context manager for opening a file
+
+        This is differentiated from the normal "with open() as f" usage by only
+        catching the exception in the open() call itself, not any exceptions
+        handled in the body.
+    """
+
+    def __init__(self, filename, mode):
+        self.file = None
+        self.err_msg = "Internal error"
+        self.filename = filename
+        self.mode = mode
+
+    def __bool__(self):
+        return bool(self.file)
+
+    def __nonzero__(self):
+        return bool(self.file)
+
+    def __enter__(self):
+        try:
+            self.file = open(self.filename, self.mode)
+        except EnvironmentError as e:
+            self.err_msg = e.strerror()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.file:
+            self.file.close()
+
+    def get_file(self):
+        """Return the file object"""
+        return self.file
+
+    def get_err_msg(self):
+        """Return the error message (only valid if an error occurred)"""
+        return self.err_msg
+
+class ReadLineInfoIter(object):
+    """
+        Iterator for reading lines from a file
+
+        This allows reading lines one at a time iteratively, along with
+    """
+
+    def __init__(self, file, target):
+        self.file = file
+        self.read_ok = True
+        self.line_count = 0
+        self.err_msg = "Internal error"
+        self.target = target
+
+    def __bool__(self):
+        return self.read_ok
+
+    def __nonzero__(self):
+        return self.read_ok
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        """Return LineInfo for the next line in the file, or None on EOF"""
+        try:
+            text = self.file.readline()
+        except EnvironmentError as e:
+            self.err_msg = e.strerror()
+            self.read_ok = False
+            raise StopIteration
+        else:
+            self.line_count += 1
+            if not text:
+                # EOF
+                raise StopIteration
+
+            return LineInfo.new(self.target, self.line_count, text.lstrip().rstrip())
+
+    def get_err_msg(self):
+        """Return the error message (only valid if an error occurred)"""
+        return "{}:{} {}".format(self.target.get_filename(), self.line_count, self.err_msg)
+
 class LineReader:
     """
         Reads lines of data from a file
@@ -42,31 +128,29 @@ class LineReader:
         self.parser = parser
         self.err_file_name = ""
 
-    def error(self, action):
+    def error(self, action, sys_msg):
         """Log an error"""
-        Log.E("Could not {} {}".format(action, self.err_file_name))
+        Log.E("Could not {} {}: {}".format(action, self.err_file_name, sys_msg))
 
     def read_file_by_name(self, fname):
         """Read a file by name"""
         self.err_file_name = " '{}'".format(fname)
-        try:
-            with open(fname, "r") as manifest_file:
-                self._read_file_obj(manifest_file)
-        except EnvironmentError:
-            # Catch all external exceptions, so GlobifestException is passed up
-            self.error("open")
+
+        with OpenFileCM(fname, "r") as file_mgr:
+            if file_mgr:
+                self._read_file_obj(file_mgr.get_file())
+            else:
+                self.error("open", file_mgr.get_err_msg())
 
     def _read_file_obj(self, file_obj):
         """Read from a file-like object"""
-        line_count = 0
-        target = self.parser.get_target()
-        try:
-            for line_text in file_obj:
-                line_count += 1
-                line_info = LineInfo.new(target, line_count, line_text.lstrip().rstrip())
-                self.parser.parse(line_info)
+        reader = ReadLineInfoIter(file_obj, self.parser.get_target())
+        for line_info in reader:
+            self.parser.parse(line_info)
+
+        if not reader:
+            self.error("read from", reader.get_err_msg())
+        else:
             self.parser.parse_end()
-        except EnvironmentError:
-            self.error("read from")
 
 new = LineReader
