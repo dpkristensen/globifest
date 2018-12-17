@@ -96,11 +96,36 @@ class TestManifestParser(unittest.TestCase):
         file = Helpers.new_file("\n".join(args))
         self.reader._read_file_obj(file)
 
-    def verify_manifest(self, expected):
-        diff = expected.get_diff(self.manifest.get_output())
+    def verify_manifest(self, expected_output, expected_configs=None):
+        diff = expected_output.get_diff(self.manifest.get_output())
         if diff != Util.Container():
             print("UNMATCHED FIELDS:{}\n".format(diff))
             self.fail()
+
+        if not expected_configs:
+            self.assertEqual(self.manifest.get_configs(), [])
+        else:
+            config_idx = 0
+            actual_configs = self.manifest.get_configs()
+            for c in actual_configs:
+                generators = []
+                for g in c.generators:
+                    actual_generator = Util.Container(
+                        format=g.FORMAT_TYPE,
+                        filename=g.get_filename()
+                    )
+                    if g.get_formatter():
+                        actual_generator.formatter = g.get_formatter()
+                    generators.append(actual_generator)
+                c.generators = generators
+                if actual_configs[config_idx].get_diff(expected_configs[config_idx]):
+                    self.fail(msg="Config mismatch at index {}\n===Actual===\n{}===Expected===\n{}".format(
+                        config_idx,
+                        actual_configs[config_idx],
+                        expected_configs[config_idx]
+                    ))
+                config_idx = config_idx + 1
+            self.assertEqual(len(expected_configs), config_idx)
 
     def test_basic_manifest(self):
         self.create_parser()
@@ -312,6 +337,59 @@ class TestManifestParser(unittest.TestCase):
             expected.sources = data[2]
             expected.pub_includes = data[3]
             self.verify_manifest(expected)
+
+    def test_configs(self):
+        self.create_parser()
+        self.parse_lines(
+            ":config",
+            "   definition foo.dfg",
+            ":end",
+            ":config",
+            "   definition baz.dfg",
+            "   generate C baz.h",
+            ":end",
+            ":config",
+            "   definition bar.dfg",
+            "   generate Java bar.java",
+            "   formatter my_formatter.py",
+            "   generate Custom bar.bin",
+            ":end",
+            ":sources",
+            "    a.cpp"
+            )
+
+        output = create_empty_manifest_container()
+        output.sources = ["a.cpp"]
+        configs = [
+            Util.Container(
+                definition="foo.dfg",
+                generators=[]
+            ),
+            Util.Container(
+                definition="baz.dfg",
+                generators=[
+                    Util.Container(
+                        format="c",
+                        filename="baz.h"
+                    )
+                ]
+            ),
+            Util.Container(
+                definition="bar.dfg",
+                generators=[
+                    Util.Container(
+                        format="java",
+                        filename="bar.java"
+                    ),
+                    Util.Container(
+                        format="custom",
+                        filename="bar.bin",
+                        formatter="my_formatter.py"
+                    )
+                ]
+            )
+        ]
+        self.verify_manifest(output, configs)
 
     def test_empty_file(self):
         self.create_parser()
