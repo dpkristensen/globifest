@@ -58,7 +58,7 @@ class OpenFileCM(object):
         try:
             self.file = open(self.filename, self.mode)
         except EnvironmentError as e:
-            self.err_msg = e.strerror()
+            self.err_msg = e.strerror
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -104,7 +104,7 @@ class ReadLineInfoIter(object):
         try:
             text = self.file.readline()
         except EnvironmentError as e:
-            self.err_msg = e.strerror()
+            self.err_msg = e.strerror
             self.read_ok = False
             raise StopIteration
         else:
