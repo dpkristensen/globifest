@@ -33,7 +33,7 @@
 
 import unittest
 
-from GlobifestLib import DefTree, Util
+from GlobifestLib import DefTree, Settings, Util
 
 class TestDefTree(unittest.TestCase):
 
@@ -181,6 +181,29 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(search_scope.get_description(), "123\n\n456")
         search_scope.set_description("789")
         self.assertEqual(search_scope.get_description(), "123\n\n456\n\n789")
+
+    def test_get_relevant_params(self):
+        c = DefTree.new(filename="test.def")
+
+        self.assertEqual(self.pa, c.add_param(self.pa))
+        self.assertEqual(self.pb, c.add_param(self.pb))
+        self.assertEqual(self.pc, c.add_param(self.pc))
+
+
+        settings = Settings.new(configs=Util.Container(
+            # Values in the list are interspersed with values that are not in the list
+            IDENTIFIER_A="A",
+            IDENTIFIER_X="X",
+            IDENTIFIER_B="B",
+            IDENTIFIER_Y="Y",
+            IDENTIFIER_Z="Z",
+            IDENTIFIER_C="C"
+        ))
+        self.assertEqual(c.get_relevant_params(settings), [
+                Util.Container(param=self.pa, value="A"),
+                Util.Container(param=self.pb, value="B"),
+                Util.Container(param=self.pc, value="C")
+            ])
 
     def test_validate_type(self):
         test_tbl = [

@@ -33,7 +33,7 @@
 
 import re
 
-from GlobifestLib import Util
+from GlobifestLib import Log, Util
 
 PARAM_TYPE = Util.create_enum(
     "BOOL",
@@ -166,6 +166,40 @@ class PrintObserver(object):
     def _print(self, text):
         print("{}{}".format("  " * self.level, str(text)))
 
+class RelevantParamMatcher(object):
+    """This class can be used to get relevant parameters from the tree"""
+
+    def __init__(self, settings):
+        self.out = []
+        self.settings = settings
+
+    def get_params(self):
+        """Return a list of parameters for the relevant settings, along with its value"""
+        return self.out
+
+    def on_def_begin(self, _filename):
+        """Handler for the beginning of a DefTree"""
+        pass
+
+    def on_param(self, param):
+        """Handle a parameter"""
+        try:
+            value = self.settings.get_value(param.get_identifier())
+            self.out.append(Util.Container(
+                param=param,
+                value=value
+                ))
+        except KeyError:
+            Log.E("Undefined value {}".format(param))
+
+    def on_scope_begin(self, _title, _description):
+        """Handle the beginning of a scope"""
+        pass
+
+    def on_scope_end(self):
+        """Handle the end of a scope"""
+        pass
+
 class Scope(object):
     """Encapsulates a collection of Parameters and nested sub-Scopes"""
 
@@ -244,6 +278,16 @@ class DefTree(Scope):
     def get_filename(self):
         """Returns the filename of the definition"""
         return self.filename
+
+    def get_relevant_params(self, settings):
+        """
+            Returns the definitions in this tree which are applicable to settings
+
+            The output is a container with param=Parameter and value=<from settings>
+        """
+        observer = RelevantParamMatcher(settings)
+        self.walk(observer)
+        return observer.get_params()
 
     def get_scope(self, scope_path):
         """
