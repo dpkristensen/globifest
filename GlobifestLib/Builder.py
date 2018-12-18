@@ -37,6 +37,8 @@ import re
 from GlobifestLib import \
     Config, \
     ConfigParser, \
+    DefTree, \
+    DefinitionParser, \
     LineReader, \
     Log, \
     Manifest, \
@@ -57,6 +59,17 @@ def build_config(in_fname):
 
     reader.read_file_by_name(in_fname)
     return config
+
+def build_definition(in_fname):
+    """
+      Build a definition
+    """
+    def_tree = DefTree.new(in_fname)
+    parser = DefinitionParser.new(def_tree)
+    reader = LineReader.new(parser)
+
+    reader.read_file_by_name(in_fname)
+    return def_tree
 
 def build_manifest(in_fname, settings):
     """
@@ -164,7 +177,29 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
                 Log.X("    {}:".format(k))
                 for f in v:
                     Log.X("      {}".format(f))
-        # TODO: Generate header files as specified by the manifest
+        for cfg in manifest.get_configs():
+            cfg.definition = Util.get_abs_path(cfg.definition, pkg_dir)
+            Log.I("    Parsing {}".format(cfg.definition))
+            def_tree = build_definition(cfg.definition)
+            defs = def_tree.get_relevant_params(effective_settings)
+            for gen in cfg.generators:
+                gen_file = Util.get_abs_path(gen.get_filename(), pkg_dir)
+                gen_file = os.path.relpath(gen_file, start=pkg_dir)
+                gen_file = os.path.normpath(gen_file)
+                gen_file = os.path.join(out_dir, gen_file)
+                # Update the filename in the generator
+                gen.filename = gen_file
+                Log.I("      Generating {}".format(gen_file))
+                if gen.get_formatter():
+                    formatter_filename = Util.get_abs_path(gen.get_formatter(), pkg_dir)
+                    Log.I("      Executing {}".format(formatter_filename))
+                #### GENERATOR CALLBACK ####
+                if callbacks.get("generator"):
+                    # Let the build script intercept the generator without any filesystem changes
+                    callbacks.generator(callbacks.get("arg", None), metadata, defs)
+                else:
+                    os.makedirs(os.path.dirname(gen_file), exist_ok=True)
+                    gen.generate(defs, out_dir)
 
     #### POSTPROCESS CALLBACK ####
     if callbacks.get("postprocess"):
