@@ -36,6 +36,12 @@ from GlobifestLib import Log, Util
 generators = Util.Container()
 
 def register_generator(gen_class):
+    """
+        Register a generator class
+
+        An external build script could use this to extend the allowable formats for proprietary
+        and non-portable manifests.
+    """
     generators[gen_class.FORMAT_TYPE] = gen_class
 
 class GeneratorBase(object):

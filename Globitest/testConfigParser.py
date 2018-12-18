@@ -81,7 +81,7 @@ class TestConfigParser(unittest.TestCase):
     def parse_lines(self, *args):
         file = Helpers.new_file("\n".join(args))
         self.reader._read_file_obj(file)
-    
+
     def verify_configs(self, expected):
         diff = expected.get_diff(self.config.get_settings().configs)
         if diff != Util.Container():
@@ -118,7 +118,7 @@ class TestConfigParser(unittest.TestCase):
         self.verify_configs(Util.Container(
             INT_VALUE="1"
         ))
-        
+
         expected_comment = "\n".join([
             "To create a bulleted list, this is what needs to be typed:",
             "",

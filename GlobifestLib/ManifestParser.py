@@ -121,7 +121,7 @@ class ConditionContext(Context):
 
     def __init__(self, manifest_parser, prev_context=None, line_info=None, context_parser=None):
         """Initialize the top (file-scope) nesting level"""
-        Context.__init__(self, manifest_parser, prev_context, line_info, Context.CTYPE.CONDITION);
+        Context.__init__(self, manifest_parser, prev_context, line_info, Context.CTYPE.CONDITION)
 
         if prev_context is None:
             self.label = None
@@ -207,7 +207,7 @@ class ConditionContext(Context):
 
         try:
             result = self.manifest_parser.settings.evaluate(expr)
-        except Log.GlobifestException as e:
+        except Log.GlobifestException:
             # Add line context to this error
             self.manifest_parser.log_error("Failed to evaluate expression")
         self.manifest_parser.debug("COND EXPR: '{}' = {}".format(expr, result))
@@ -264,7 +264,7 @@ class ParameterContext(Context):
 
         return True
 
-    def process_line(self, text):
+    def process_line(self, _text):
         """Stub, returns False"""
         # This is called too early to be used to process parameters
         return False
@@ -395,6 +395,7 @@ class ManifestParser(Log.Debuggable):
             self._parse_directive(line[1:])
         elif cur_context.has_parameters():
             if m.is_fullmatch(self.parameter_re):
+                #pylint: disable=E1101
                 cur_context.process_param(m[1], m[2])
             else:
                 self.log_error("Malformed parameter: {}".format(line))
@@ -421,7 +422,7 @@ class ManifestParser(Log.Debuggable):
             self.log_error("end must be at the end of a block")
 
         cur_context = self.context_stack[-1]
-        #pylint disable E1101
+        #pylint: disable=E1101
         if not cur_context.is_complete():
             self.log_error("Incomplete block started at {}".format(cur_context.line_info))
 
