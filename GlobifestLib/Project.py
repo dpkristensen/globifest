@@ -54,6 +54,11 @@ class Project(object):
         self.filename = filename
         self.prj_name = None
         self.packages = []
+        self.dependencies = Util.Container()
+
+    def add_dependency(self, dependency):
+        """Add a dependency to the project"""
+        self.dependencies[dependency.get_name()] = dependency
 
     def add_layer(self, layer_name):
         """Push a new layer onto the stack"""
@@ -77,6 +82,10 @@ class Project(object):
                 config=Util.Container()
                 )
             layer_ref.variants.append(variant_ref)
+
+    def get_dependencies(self):
+        """Return the set of dependencies"""
+        return self.dependencies
 
     def get_filename(self):
         """Returns the filename where the project is defined"""

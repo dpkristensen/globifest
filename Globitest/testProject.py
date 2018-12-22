@@ -33,7 +33,17 @@
 
 import unittest
 
-from GlobifestLib import Project, Util
+from GlobifestLib import \
+    Importer, \
+    Project, \
+    Util
+
+class StubAction(Importer.ActionBase):
+    """Stub class to simulate actions"""
+
+    def __init__(self, atype):
+        Importer.ActionBase.__init__(self, "")
+        self.ACTION_TYPE = atype
 
 class TestProject(unittest.TestCase):
 
@@ -84,3 +94,25 @@ class TestProject(unittest.TestCase):
             )
 
         self.assertEqual(prj.get_packages(), ["path/to/pkg1.mfg", "package2.mfg"])
+
+    def test_dependencies(self):
+        prj = Project.new(err_fatal=True)
+        prj.set_name("Dependencies")
+        self.assertEqual(prj.get_name(), "Dependencies")
+
+        prj.add_dependency(Importer.ExternalDependency("d0", [
+            StubAction("a0"),
+            StubAction("a1")])
+            )
+        prj.add_dependency(Importer.ExternalDependency("d1", [
+            StubAction("a2")])
+            )
+
+        deps = prj.get_dependencies()
+        self.assertIsNotNone(deps.get("d0", None))
+        self.assertEqual(deps.d0.get_name(), "d0")
+        self.assertEqual(str(deps.d0), "d0: a0,a1")
+
+        self.assertIsNotNone(deps.get("d1", None))
+        self.assertEqual(deps.d1.get_name(), "d1")
+        self.assertEqual(str(deps.d1), "d1: a2")

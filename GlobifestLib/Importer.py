@@ -1,6 +1,6 @@
 #/usr/bin/env python
 """
-    globifest/globitest/__init__.py - globifest Library Package
+    globifest/Importer.py - globifest Importer
 
     Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
@@ -31,29 +31,28 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__ = "Daniel Kristensen"
-__license__ = "BSD"
-__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
 
-__all__ = [
-    "BoundedStatefulParser",
-    "Builder",
-    "Config",
-    "ConfigParser",
-    "DefinitionParser",
-    "DefTree",
-    "Generators",
-    "Importer",
-    "LineInfo",
-    "LineReader",
-    "Log",
-    "Manifest",
-    "ManifestParser",
-    "Matcher",
-    "ProjectParser",
-    "Project",
-    "Settings",
-    "StatefulParser",
-    "StateMachine",
-    "Util"
-    ]
+class ActionBase(object):
+    """Base class for actions"""
+
+    ACTION_TYPE = "UNDEFINED"
+
+    def __init__(self, arg):
+        self.arg = arg
+
+    def __str__(self):
+        return self.ACTION_TYPE
+
+class ExternalDependency(object):
+    """Encapsulate logic to set up external dependencies"""
+
+    def __init__(self, name, action_list):
+        self.name = name
+        self.actions = action_list
+
+    def __str__(self):
+        return "{}: {}".format(self.name, ",".join(a.ACTION_TYPE for a in self.actions))
+
+    def get_name(self):
+        """Return the name/identifier of the dependency"""
+        return self.name
