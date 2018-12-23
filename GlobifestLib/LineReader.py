@@ -102,7 +102,7 @@ class ReadLineInfoIter(object):
     def next(self):
         """Return LineInfo for the next line in the file, or None on EOF"""
         try:
-            text = self.file.readline()
+            text = self.file.__next__()
         except EnvironmentError as e:
             self.err_msg = e.strerror
             self.read_ok = False
@@ -136,7 +136,7 @@ class LineReader:
         """Read a file by name"""
         self.err_file_name = " '{}'".format(fname)
 
-        with OpenFileCM(fname, "r") as file_mgr:
+        with OpenFileCM(fname, "rt") as file_mgr:
             if file_mgr:
                 self._read_file_obj(file_mgr.get_file())
             else:

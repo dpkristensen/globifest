@@ -43,6 +43,27 @@ class TestLineReader(unittest.TestCase):
         self.parser = Helpers.new_parser()
         self.reader = LineReader.new(self.parser)
 
+    def test_embedded_bin_chars(self):
+        """
+            Test a file with embedded binary characters which could
+            potentially break text processing:
+
+            0x00 = Null (mostly universal)
+            0x03 = ASCII End of text
+            0x04 = ASCII End of transmission
+            0x0C = ASCII Form feed)
+            0x17 = ASCII End of transmission block
+            0x1A = DOS End of File
+            0x1C = ASCII File separator
+        """
+        file = io.StringIO("line\x00\x03\x04\x0c\x17\x1a\x1c1")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 1);
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line\x00\x03\x04\x0c\x17\x1a\x1c1")
+
     def test_empty_file(self):
         file = Helpers.new_file("")
         self.reader._read_file_obj(file)
@@ -70,3 +91,82 @@ class TestLineReader(unittest.TestCase):
         self.assertEqual(self.parser.lines[2].get_filename(), Helpers.TEST_FNAME)
         self.assertEqual(self.parser.lines[2].get_line(), 3)
         self.assertEqual(self.parser.lines[2].get_text(), "SPARTA!")
+
+    def test_newline_mixed(self):
+        file = io.StringIO("line1\r\nline2\nline3")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 3, msg="{}".format([line_info.get_text() for line_info in self.parser.lines]))
+
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line1")
+
+        self.assertEqual(self.parser.lines[1].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[1].get_line(), 2)
+        self.assertEqual(self.parser.lines[1].get_text(), "line2")
+
+        self.assertEqual(self.parser.lines[2].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[2].get_line(), 3)
+        self.assertEqual(self.parser.lines[2].get_text(), "line3")
+
+        # MAC OS-style newlines are not supported outside of the MAC OS
+        # interpreter, and implementing support would slow down processing
+        # on other platforms; so it is a non-requirement.
+        #
+        # Implementing a test for splitting on \r as well would break the test
+        # on other platforms.
+
+    def test_newline_unix(self):
+        file = io.StringIO("line1\nline2")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 2, msg="{}".format([line_info.get_text() for line_info in self.parser.lines]))
+
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line1")
+
+        self.assertEqual(self.parser.lines[1].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[1].get_line(), 2)
+        self.assertEqual(self.parser.lines[1].get_text(), "line2")
+
+    def test_newline_windows(self):
+        file = io.StringIO("line1\r\nline2")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 2, msg="{}".format([line_info.get_text() for line_info in self.parser.lines]))
+
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line1")
+
+        self.assertEqual(self.parser.lines[1].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[1].get_line(), 2)
+        self.assertEqual(self.parser.lines[1].get_text(), "line2")
+
+    def test_no_trailing_newline(self):
+        file = io.StringIO("line1\nline2")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 2);
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line1")
+
+        self.assertEqual(self.parser.lines[1].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[1].get_line(), 2)
+        self.assertEqual(self.parser.lines[1].get_text(), "line2")
+
+    def test_trailing_newline(self):
+        file = io.StringIO("line1\nline2\n")
+        self.reader._read_file_obj(file)
+
+        self.assertEqual(len(self.parser.lines), 2);
+        self.assertEqual(self.parser.lines[0].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[0].get_line(), 1)
+        self.assertEqual(self.parser.lines[0].get_text(), "line1")
+
+        self.assertEqual(self.parser.lines[1].get_filename(), Helpers.TEST_FNAME)
+        self.assertEqual(self.parser.lines[1].get_line(), 2)
+        self.assertEqual(self.parser.lines[1].get_text(), "line2")
