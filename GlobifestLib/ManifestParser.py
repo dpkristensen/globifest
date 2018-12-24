@@ -35,7 +35,6 @@
 """
 
 import glob
-import os
 import pathlib
 import re
 
@@ -318,7 +317,7 @@ class ManifestParser(Log.Debuggable):
         self.manifest = manifest
         self.validate_files = validate_files
         self.line_info = None
-        self.pkg_root = os.path.dirname(manifest.get_filename())
+        self.pkg_root = manifest.get_root()
 
         # Always has a context
         top_context = ConditionContext(manifest_parser=self)

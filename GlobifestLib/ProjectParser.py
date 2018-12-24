@@ -298,18 +298,17 @@ class ProjectParser(Log.Debuggable):
                 suffix=None
                 )
             )
-        self.debug("  {}".format(name))
         self.context_stack.append(new_context)
 
-    def _package(self, name):
+    def _package(self, path):
         """Process a package"""
         cur_context = self.context_stack[-1]
         ctype = cur_context.get_ctype()
         if ctype not in [Context.CTYPE.PROJECT]:
             self.log_error("package is not allowed in this scope")
 
-        self.debug("  {}".format(name))
-        self.project.add_package(name)
+        self.debug("  {}".format(path))
+        self.project.add_package(path)
 
     def _project_end(self, context):
         """

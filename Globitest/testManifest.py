@@ -72,3 +72,10 @@ class TestManifest(unittest.TestCase):
     def test_filename(self):
         manifest = Manifest.new("different_name.glst")
         self.assertEquals(manifest.get_filename(), "different_name.glst")
+
+    def test_roots(self):
+        manifest1 = Manifest.new("foo/source.glst")
+        self.assertEqual(manifest1.get_root(), "foo")
+
+        manifest2 = Manifest.new("dependency.glst", "baz/bar")
+        self.assertEqual(manifest2.get_root(), "baz/bar")

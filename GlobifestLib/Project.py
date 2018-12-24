@@ -33,6 +33,11 @@
 
 from GlobifestLib import Log, Util
 
+ROOT = Util.create_enum(
+    "DEPENDENCY",
+    "SOURCE"
+    )
+
 class Project(object):
     """
         Encapsulates information necessary to build with various configurations.
@@ -68,9 +73,22 @@ class Project(object):
             )
         self.layers.append(layer_ref)
 
-    def add_package(self, filename):
-        """Add a package to the project"""
-        self.packages.append(filename)
+    def add_package(self, filename, file_root=ROOT.SOURCE, module_root=ROOT.SOURCE, module_id=None):
+        """
+            Add a package to the project
+
+            @param filename     Path to the manifest file
+            @param file_root    ROOT enum value corresponding to where the manifest is to be found.
+            @param module_root  ROOT enum value corresponding to where the manifest's files can
+                                be found.
+            @param module_id    Name (identifier) of the dependency for ROOT.DEPENDENCY values.
+        """
+        self.packages.append(Util.Container(
+            filename=filename,
+            file_root=file_root,
+            module_root=module_root,
+            module_id=module_id
+            ))
 
     def add_variant(self, layer_name, variant_name, filename):
         """Add a new variant into the layer"""

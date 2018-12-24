@@ -71,11 +71,11 @@ def build_definition(in_fname):
     reader.read_file_by_name(in_fname)
     return def_tree
 
-def build_manifest(in_fname, settings):
+def build_manifest(in_fname, settings, pkg_root):
     """
       Build a manifest with the given settings
     """
-    manifest = Manifest.new(in_fname)
+    manifest = Manifest.new(in_fname, pkg_root)
     parser = ManifestParser.new(manifest, settings)
     reader = LineReader.new(parser)
 
@@ -158,10 +158,32 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
     all_manifests = []
 
     Log.I("Processing packages...")
-    for pkg_file in project.get_packages():
-        pkg_file = Util.get_abs_path(pkg_file, prj_dir)
+    for pkg in project.get_packages():
+        # Determine package file location
+        if pkg.file_root == project.ROOT.SOURCE:
+            # File is relative to the project directory
+            pkg_file = Util.get_abs_path(pkg.filename, prj_dir)
+        elif pkg.file_root == project.ROOT.DEPENDENCY:
+            # File is relative to the dependency's output directory
+            # (external manifest)
+            pkg_file = Util.get_abs_path(
+                pkg.filename,
+                os.path.join(out_dir, pkg.module_id)
+                )
+        else:
+            Log.I("Unknown file root {}".format(str(pkg.file_root)))
+        # Determine package processing root
+        if pkg.module_root == project.ROOT.SOURCE:
+            # File is relative to the package folder
+            pkg_root = os.path.dirname(pkg_file)
+        elif pkg.module_root == project.ROOT.DEPENDENCY:
+            # File is relative to the dependency's output directory
+            # (local manifest)
+            pkg_root = os.path.join(out_dir, pkg.module_id)
+        else:
+            Log.I("Unknown package root {}".format(str(pkg.file_root)))
         Log.I("  {}".format(pkg_file))
-        manifest = build_manifest(pkg_file, effective_settings)
+        manifest = build_manifest(pkg_file, effective_settings, pkg_root)
         all_manifests.append(manifest)
         pkg_dir = os.path.dirname(pkg_file)
         manifest_out = manifest.get_output()

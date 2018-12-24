@@ -216,7 +216,17 @@ class TestProjectParser(unittest.TestCase):
             "name" : "MyProject",
             "layers" : [],
             "packages" : [
-                "package1.gman",
-                "./package2.mfg"
+                Util.Container(
+                    filename="package1.gman",
+                    file_root=Project.ROOT.SOURCE,
+                    module_root=Project.ROOT.SOURCE,
+                    module_id=None
+                    ),
+                Util.Container(
+                    filename="./package2.mfg",
+                    file_root=Project.ROOT.SOURCE,
+                    module_root=Project.ROOT.SOURCE,
+                    module_id=None
+                    )
                 ]
             }))

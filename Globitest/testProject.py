@@ -62,7 +62,7 @@ class TestProject(unittest.TestCase):
         prj.add_layer("layer2")
         prj.add_variant("layer2", "variant2.1", "l2_v2_1.cfg")
         prj.add_package("path/to/pkg1.mfg")
-        prj.add_package("package2.mfg")
+        prj.add_package("package2.mfg", module_root=Project.ROOT.DEPENDENCY, module_id="Package2")
 
         self.assertEqual(prj.get_target("layer1", "variant1.1").filename, "l1_v1_1.cfg")
         self.assertEqual(prj.get_target("layer1", "variant1.2").filename, "l1_v1_2.cfg")
@@ -93,7 +93,20 @@ class TestProject(unittest.TestCase):
                 )
             )
 
-        self.assertEqual(prj.get_packages(), ["path/to/pkg1.mfg", "package2.mfg"])
+        self.assertEqual(prj.get_packages(), [
+            Util.Container(
+                filename="path/to/pkg1.mfg",
+                file_root=Project.ROOT.SOURCE,
+                module_root=Project.ROOT.SOURCE,
+                module_id=None
+                ),
+            Util.Container(
+                filename="package2.mfg",
+                file_root=Project.ROOT.SOURCE,
+                module_root=Project.ROOT.DEPENDENCY,
+                module_id="Package2"
+                )
+            ])
 
     def test_dependencies(self):
         prj = Project.new(err_fatal=True)

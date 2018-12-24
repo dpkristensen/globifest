@@ -31,6 +31,8 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
+
 from GlobifestLib import Util
 
 class Manifest:
@@ -38,10 +40,14 @@ class Manifest:
         Encapsulates all information about a manifest file
     """
 
-    def __init__(self, fname):
+    def __init__(self, fname, root=None):
         self.out = Util.Container()
         self.fname = fname
         self.configs = []
+        if root is None:
+            self.root = os.path.dirname(self.fname)
+        else:
+            self.root = root
 
     def __str__(self):
         outstr = "File: {}".format(self.fname)
@@ -76,5 +82,9 @@ class Manifest:
     def get_output(self):
         """Returns the output of the manifest"""
         return self.out
+
+    def get_root(self):
+        """Returns the root of the manifest where all the paths are"""
+        return self.root
 
 new = Manifest
