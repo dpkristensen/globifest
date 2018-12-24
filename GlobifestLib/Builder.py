@@ -103,6 +103,14 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
 
     os.makedirs(out_dir, exist_ok=True)
 
+    # Check external project dependencies
+    for dep_name, dependency in project.get_dependencies():
+        Log.I("Checking dependency {}...".format(dep_name))
+        dep_out_dir = os.path.join(out_dir, dep_name)
+        os.makedirs(dep_out_dir, exist_ok=True)
+        dependency.setup(dep_out_dir)
+
+    # Set up build configuration
     Log.I("Build configuration:")
     setting_re = re.compile("([^=]+)=(.+)")
     cfg_container = Util.Container() # Unordered, for tracking purposes
