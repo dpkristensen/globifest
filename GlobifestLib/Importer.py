@@ -31,6 +31,33 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+from GlobifestLib import Util
+
+actions = Util.Container()
+
+def create_action(name, arg):
+    """
+        Factory method for action objects
+    """
+    action_class = actions.get(name, type(None))
+    if issubclass(action_class, ActionBase):
+        return action_class(arg)
+
+    return None
+
+
+def register_action(action_class):
+    """
+        Register an action class
+
+        An external build script could use this to extend the available actions for proprietary
+        and non-portable manifests.
+    """
+    assert issubclass(action_class, ActionBase)
+    actions[action_class.ACTION_TYPE] = action_class
+
+
+### ACTIONS ###
 
 class ActionBase(object):
     """Base class for actions"""
@@ -43,15 +70,60 @@ class ActionBase(object):
     def __str__(self):
         return self.ACTION_TYPE
 
+class DestAction(ActionBase):
+    """
+        Action to specify a destination
+
+        Argument: File/folder
+        Chain Inputs: None
+        Chain Outputs: Argument
+    """
+
+    ACTION_TYPE = "dest"
+
+register_action(DestAction)
+
+class ExtractAction(ActionBase):
+    """
+        Action to Extract an archive
+
+        Argument: Text to drop from the beginning of all filenames
+        Chain Inputs: Input filename
+        Chain Outputs: Folder where the archive was extracted to
+    """
+
+    ACTION_TYPE = "extract"
+
+register_action(ExtractAction)
+
+class UrlAction(ActionBase):
+    """
+        Action to download from a URL
+
+        Chain Inputs: Destination filename (optional)
+        Chain Outputs: File name the URL was downloaded to
+    """
+
+    ACTION_TYPE = "url"
+
+register_action(UrlAction)
+
+### CORE CLASSES ###
+
 class ExternalDependency(object):
     """Encapsulate logic to set up external dependencies"""
 
     def __init__(self, name, action_list):
         self.name = name
         self.actions = action_list
+        self.out_dir = None
 
     def __str__(self):
         return "{}: {}".format(self.name, ",".join(a.ACTION_TYPE for a in self.actions))
+
+    def get_actions(self):
+        """Return the list of ActionBase objects"""
+        return self.actions
 
     def get_name(self):
         """Return the name/identifier of the dependency"""

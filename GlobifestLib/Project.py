@@ -52,6 +52,8 @@ class Project(object):
         See project-format.md for further details.
     """
 
+    ROOT = ROOT
+
     def __init__(self, filename="", err_ctx=Log.ERROR.RUNTIME, err_fatal=False):
         self.layers = list() # This is a list instead of a container to ensure ordering
         self.err_ctx = err_ctx

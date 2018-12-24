@@ -89,8 +89,12 @@ class TestProjectParser(unittest.TestCase):
 
     def verify_project(self, expected):
         prj = self.parser.get_target();
+
+        # Verify simple properties
         self.assertIsNotNone(prj)
         self.assertEqual(prj.get_name(), expected.name)
+
+        # Verify layers
         for actual_layer_name, expected_layer in zip(prj.get_layer_names(), expected.layers):
             self.assertEqual(actual_layer_name, expected_layer.name)
             for actual_variant_name, expected_variant in zip(prj.get_variant_names(actual_layer_name), expected_layer.variants):
@@ -99,7 +103,84 @@ class TestProjectParser(unittest.TestCase):
                     prj.get_target(actual_layer_name, actual_variant_name).filename,
                     expected_variant.filename
                     )
+
+        # Verify packages
         self.assertEqual(prj.get_packages(), expected.packages)
+
+        # Verify dependencies
+        actual_dependencies = Util.Container()
+        for dep_name, dependency in prj.get_dependencies():
+            actual_action_list = []
+            for action in dependency.get_actions():
+                actual_action_list.append(Util.Container(
+                    id=action.ACTION_TYPE,
+                    arg=action.arg
+                    ))
+            actual_dependencies[dep_name] = actual_action_list
+        self.assertEqual(Util.Container(), actual_dependencies.get_diff(expected.dependencies))
+
+    def test_dependencies(self):
+        self.create_parser()
+        self.parse_lines(
+            ":project DepTest",
+            "    :dependency FOO",
+            "        dest chu.zip",
+            "        url https://foohub.com/foo_man/FOO/master/chu.zip",
+            "        extract chu/",
+            "    :end",
+            "    :ext_package FOO extract/chu.gman",
+            "    :dependency BAR",
+            "        dest bar.bin",
+            "        url https://foohub.com/foo_man/FOO/master/bar.bin",
+            "    :end",
+            "    :lcl_package BAR external/BAR.gman",
+            ":end",
+            )
+
+        self.verify_project(Util.Container(**{
+            "name" : "DepTest",
+            "layers" : [],
+            "packages" : [
+                Util.Container(
+                    filename="extract/chu.gman",
+                    file_root=Project.ROOT.DEPENDENCY,
+                    module_root=Project.ROOT.SOURCE,
+                    module_id="FOO"
+                    ),
+                Util.Container(
+                    filename="external/BAR.gman",
+                    file_root=Project.ROOT.SOURCE,
+                    module_root=Project.ROOT.DEPENDENCY,
+                    module_id="BAR"
+                    )
+                ],
+            "dependencies" : Util.Container(**{
+                "FOO" : [
+                    Util.Container(
+                        id="dest",
+                        arg="chu.zip"
+                        ),
+                    Util.Container(
+                        id="url",
+                        arg="https://foohub.com/foo_man/FOO/master/chu.zip"
+                        ),
+                    Util.Container(
+                        id="extract",
+                        arg="chu/"
+                        )
+                    ],
+                "BAR" : [
+                    Util.Container(
+                        id="dest",
+                        arg="bar.bin"
+                        ),
+                    Util.Container(
+                        id="url",
+                        arg="https://foohub.com/foo_man/FOO/master/bar.bin"
+                        )
+                    ]
+                }),
+            }))
 
     def test_empty_project(self):
         self.create_parser()
@@ -114,7 +195,8 @@ class TestProjectParser(unittest.TestCase):
         self.verify_project(Util.Container(**{
             "name" : "MyProject",
             "layers" : [],
-            "packages" : []
+            "packages" : [],
+            "dependencies" : []
             }))
 
     def test_layers(self):
@@ -187,7 +269,8 @@ class TestProjectParser(unittest.TestCase):
                         ]
                     )
                 ],
-            "packages" : []
+            "packages" : [],
+            "dependencies" : []
             }))
 
     def test_name_whitespace(self):
@@ -200,7 +283,8 @@ class TestProjectParser(unittest.TestCase):
         self.verify_project(Util.Container(**{
             "name" : "My_Project",
             "layers" : [],
-            "packages" : []
+            "packages" : [],
+            "dependencies" : []
             }))
 
     def test_packages(self):
@@ -228,5 +312,6 @@ class TestProjectParser(unittest.TestCase):
                     module_root=Project.ROOT.SOURCE,
                     module_id=None
                     )
-                ]
+                ],
+            "dependencies" : []
             }))

@@ -34,6 +34,7 @@
 import re
 
 from GlobifestLib import \
+    Importer, \
     Log, \
     Matcher, \
     Util
@@ -53,6 +54,7 @@ class Context(object):
     """
 
     CTYPE = Util.create_enum(
+        "DEPENDENCY",
         "LAYER",
         "PROJECT"
         )
@@ -87,6 +89,8 @@ class Context(object):
             self.validate_project()
         elif self.ctx.ctype == Context.CTYPE.LAYER:
             self.validate_layer()
+        elif self.ctx.ctype == Context.CTYPE.DEPENDENCY:
+            self.validate_dependency()
         else:
             assert self.ctx.ctype is not None
             return False
@@ -107,8 +111,21 @@ class Context(object):
         """Process a parameter in context"""
         if self.ctx.ctype == Context.CTYPE.PROJECT:
             self.project_parser.log_error("Projects have no parameters")
-        if self.ctx.ctype == Context.CTYPE.LAYER:
+        elif self.ctx.ctype == Context.CTYPE.DEPENDENCY:
+            self.process_param_dependency(name, value)
+        elif self.ctx.ctype == Context.CTYPE.LAYER:
             self.process_param_layer(name, value)
+
+    def process_param_dependency(self, name, value):
+        """Process a dependency parameter (action)"""
+        if not value:
+            self.project_parser.log_error("Bad parameter: {}".format(value))
+
+        action = Importer.create_action(name, value)
+        if action is not None:
+            self.ctx.actions.append(action)
+        else:
+            self.project_parser.debug("not found: {}".format(name))
 
     def process_param_layer(self, name, value):
         """Process a layer parameter"""
@@ -125,6 +142,14 @@ class Context(object):
             self.ctx[LAYER_ELEMENTS[name]] = value
         else:
             self.project_parser.debug("not found: {}".format(name))
+
+    def validate_dependency(self):
+        """Validate the final state of a dependency context"""
+        # Validate required fields
+        if not self.ctx.actions:
+            self.project_parser.log_error(
+                "Dependency {} has no actions".format(self.ctx.dependency_name)
+                )
 
     def validate_layer(self):
         """Validate the final state of a layer context"""
@@ -182,9 +207,26 @@ class ProjectParser(Log.Debuggable):
                 "layer[ \t]+(" + IDENTIFIER_NAME + ")$",
                 regex_flags
                 )
+        with Log.CaptureStdout(self, "DEPENDENCY_RE:"):
+            self.dependency_re = re.compile(
+                "dependency[ \t]+(" + IDENTIFIER_NAME + ")$",
+                regex_flags
+                )
         with Log.CaptureStdout(self, "PACKAGE_RE:"):
             self.package_re = re.compile(
                 "package[ \t]+(.+)$",
+                regex_flags
+                )
+
+        with Log.CaptureStdout(self, "EXT_PACKAGE_RE:"):
+            self.ext_package_re = re.compile(
+                "ext_package[ \t]+(" + IDENTIFIER_NAME + ")[ \t]+(.+)$",
+                regex_flags
+                )
+
+        with Log.CaptureStdout(self, "LCL_PACKAGE_RE:"):
+            self.lcl_package_re = re.compile(
+                "lcl_package[ \t]+(" + IDENTIFIER_NAME + ")[ \t]+(.+)$",
                 regex_flags
                 )
 
@@ -254,12 +296,49 @@ class ProjectParser(Log.Debuggable):
         ctype = cur_context.get_ctype()
         if ctype == Context.CTYPE.PROJECT:
             self._project_end(cur_context)
+        elif ctype == Context.CTYPE.DEPENDENCY:
+            self._dependency_end(cur_context)
         elif ctype == Context.CTYPE.LAYER:
             self._layer_end(cur_context)
         else:
             assert ctype is not None
 
         self.context_stack.pop(-1)
+
+    def _dependency_end(self, context):
+        """
+            End a dependency block
+
+            Save the dependency
+        """
+        new_dependency = Importer.ExternalDependency(
+            context.ctx.dependency_name,
+            context.ctx.actions
+            )
+        self.project.add_dependency(new_dependency)
+
+    def _dependency_start(self, name):
+        """
+            Start a dependency block
+
+            Push a new context onto the stack with CTYPE.DEPENDENCY.
+        """
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [Context.CTYPE.PROJECT]:
+            self.log_error("dependency is not allowed in this scope")
+
+        new_context = Context(
+            project_parser=self,
+            prev_context=cur_context,
+            line_info=self.line_info,
+            ctx=Util.Container(
+                ctype=Context.CTYPE.DEPENDENCY,
+                dependency_name=name,
+                actions=[]
+                )
+            )
+        self.context_stack.append(new_context)
 
     def _layer_end(self, context):
         """
@@ -299,6 +378,26 @@ class ProjectParser(Log.Debuggable):
                 )
             )
         self.context_stack.append(new_context)
+
+    def _ext_package(self, name, path):
+        """Process an external package"""
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [Context.CTYPE.PROJECT]:
+            self.log_error("ext_package is not allowed in this scope")
+
+        self.debug("  {} @ DEP:{}".format(name, path))
+        self.project.add_package(path, file_root=self.project.ROOT.DEPENDENCY, module_id=name)
+
+    def _lcl_package(self, name, path):
+        """Process a local package"""
+        cur_context = self.context_stack[-1]
+        ctype = cur_context.get_ctype()
+        if ctype not in [Context.CTYPE.PROJECT]:
+            self.log_error("lcl_package is not allowed in this scope")
+
+        self.debug("  {} @ SRC:{}".format(name, path))
+        self.project.add_package(path, module_root=self.project.ROOT.DEPENDENCY, module_id=name)
 
     def _package(self, path):
         """Process a package"""
@@ -358,12 +457,21 @@ class ProjectParser(Log.Debuggable):
         if m.is_fullmatch(self.layer_re):
             self.debug("LAYER: {}".format(m[1]))
             self._layer_start(m[1])
+        elif m.is_fullmatch(self.dependency_re):
+            self.debug("DEPENDENCY: {}".format(m[1]))
+            self._dependency_start(m[1])
         elif m.is_fullmatch(self.project_re):
             self.debug("PROJECT: {}".format(m[1]))
             self._project_start(m[1])
         elif m.is_fullmatch(self.package_re):
             self.debug("PACKAGE: {}".format(m[1]))
             self._package(m[1])
+        elif m.is_fullmatch(self.ext_package_re):
+            self.debug("EXTERNAL PACKAGE: {}".format(m[1]))
+            self._ext_package(m[1], m[2])
+        elif m.is_fullmatch(self.lcl_package_re):
+            self.debug("LOCAL PACKAGE: {}".format(m[1]))
+            self._lcl_package(m[1], m[2])
         elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._block_end()
