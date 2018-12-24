@@ -234,3 +234,136 @@ The files produced by this structure would be:
 The "package" directive defines the path to a manifest containing packages to include.  Ex:
 
     :package Utilities/core.gman
+
+### 3.4 External Dependencies
+
+**Parent**=project **Multiple**
+
+The ":dependency" directive starts a parameterized block describing how to fulfill an external build-time dependency.  The directive must be followed by an identifier, which serves as a unique name.  Each parameter in the section is a set of actions which are followed in a chain to fulfill the dependency.  Ex:
+
+    :dependency googletest
+        dest googletest.zip
+        url https://github.com/google/googletest/archive/release-1.8.0.zip
+        sha256 F3ED3B58511EFD272EB074A3A6D6FB79D7C2E6A0E374323D1E6BCBCC1EF141BF
+        extract googletest-release-1.8.0\
+    :end
+
+In the above example:
+
+* The file will be downloaded from the given URL as googletest.zip.
+* The zip file will be hashed with SHA256 and compared to the given hash.
+* The zip file will be extracted with "googletest-release-1.8.0\" removed from the output path names.
+
+Action names are not case sensitive, but must always be followed by an argument.
+
+The components of an action are:
+
+* Identifier - The keyword used to describe the action (ex: "dest")
+* Argument - The text following the identifier (ex: "googletest.zip")
+* Inputs - The inputs to an action are the outputs of the previous action; the first action in the sequence has no inputs.
+* Outputs - The outputs of an action are the transformation of the input defined by the action; they will be used as inputs to the next action in the chain.
+
+#### Destination Action
+
+Supplies an input for the next command.
+
+* Identifier: dest
+* Argument: any text (dependent upon what the next action's Input requires)
+* Inputs: None
+* Outputs: The argument text
+
+#### Extract Action
+
+Extracts files from an archive.
+
+* Identifier: extract
+* Argument: Prefix text to remove from the destination file names, or . for no replacement.  Files which do not have the prefix will not be extracted.
+* Inputs: The archive file name
+* Outputs: The folder where all files were extracted to
+
+#### Hash Action
+
+Evaluates the hash of a file.
+
+Note: To generate the hash, it is suggested to use "Get-FileHash" command in Power Shell (Windows) or any number of other tools supported by your machine (ex: sha256sum).
+
+* Identifier: \<algorithm\>
+* Argument: The expected result in hex (case-insensitive)
+* Inputs: The input file name
+* Outputs: The input file name
+
+Supported algorithms:
+
+* sha256
+
+#### URL Download
+
+Downloads a file from a URL
+
+* Identifier: url
+* Argument: The URL to download from (https recommended!)
+* Inputs: The destination file name
+* Outputs: The destination file name
+
+### 3.5 Local Package
+
+**Parent**=project **Multiple**
+
+The "lcl_package" directive defines a _locally-defined_ manifest to use with a dependency.  Ex:
+
+    :lcl_package <package_id> <path>
+
+* package_id - the package name used in the dependency
+* path - The path relative to the project file (or absolute) to the manifest file.
+
+Example using a FOO module that does contains a manifest:
+
+    :dependency FOO
+        dest foo.zip
+        url https://myserver.com/foo-1.0.zip
+        extract foo-1.0/
+    :end
+    lcl_package FOO external/foo.gman
+    ; The manifest is in a local folder /external
+    ; When built in /_Output directory, the paths in the manifest will be relative to /_Output/FOO
+
+And the manifest file might look like:
+
+    :sources
+        ; Files are available after the extract command
+        extract/*.c
+
+### 3.6 External Package
+
+**Parent**=project **Multiple**
+
+The "ext_package" directive defines an _externally-defined_ manifest that is supplied with a dependency.  Ex:
+
+    :ext_package <package_id> <path>
+
+* package_id - the package name used in the dependency
+* path - The path relative to the dependency's output directory (or absolute) to the manifest file.
+
+Below are functionally equivalent ways to use a FOO module that contains a manifest in the archive as "foo-1.0_/manifest.gman"
+
+#### Example with path replacement
+
+    :dependency FOO
+        dest foo.zip
+        url https://myserver.com/foo-1.0.zip
+        extract foo-1.0/
+    :end
+    ext_package FOO extract/manifest.gman
+    ; When built in /_Output directory, the path will be /_Output/FOO/extract/manifest.gman
+
+#### Example without path replacement
+
+    :dependency FOO
+        dest foo.zip
+        url https://myserver.com/foo-1.0.zip
+        extract .
+    :end
+    ext_package FOO extract/foo-1.0/manifest.gman
+    ; When built in /_Output directory, the path will be /_Output/FOO/extract/foo/manifest.gman
+
+This form might be easier to use if a dependency provides multiple manifests in a form where usage of a prefix is infeasible.  But the folder name contains a version number, which will be repeated in each ext_package entry.
