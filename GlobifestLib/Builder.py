@@ -226,7 +226,7 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
                 #### GENERATOR CALLBACK ####
                 if callbacks.get("generator"):
                     # Let the build script intercept the generator without any filesystem changes
-                    callbacks.generator(callbacks.get("arg", None), metadata, defs)
+                    callbacks.generator(callbacks.get("arg", None), metadata, defs, gen)
                 else:
                     os.makedirs(os.path.dirname(gen_file), exist_ok=True)
                     gen.generate(defs, out_dir)
