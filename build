@@ -103,7 +103,7 @@ def parse_args():
     """Parse command-line arguments and return the results"""
 
     parser = argparse.ArgumentParser(
-        description="Global Package Manifest Builder",
+        description="Globifest Builder",
         prefix_chars="-/",
         fromfile_prefix_chars="@"
         )
