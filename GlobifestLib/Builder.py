@@ -86,19 +86,9 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
     """
       Build a project with the given settings
     """
-    project = Project.new(in_fname, err_fatal=True)
-    parser = ProjectParser.new(project)
-    reader = LineReader.new(parser)
-
-    reader.read_file_by_name(in_fname)
-
+    project, prj_dir, out_dir = read_project(in_fname, out_dir)
     Log.I("Project: {}".format(project.get_name()))
-    cwd = os.getcwd()
-
-    prj_dir = Util.get_abs_path(os.path.dirname(project.get_filename()), cwd)
     Log.I("PrjDir: {}".format(prj_dir))
-
-    out_dir = Util.get_abs_path(out_dir, cwd)
     Log.I("OutDir: {}".format(out_dir))
 
     os.makedirs(out_dir, exist_ok=True)
@@ -167,28 +157,11 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
 
     Log.I("Processing packages...")
     for pkg in project.get_packages():
-        # Determine package file location
-        if pkg.file_root == project.ROOT.SOURCE:
-            # File is relative to the project directory
-            pkg_file = Util.get_abs_path(pkg.filename, prj_dir)
-        elif pkg.file_root == project.ROOT.DEPENDENCY:
-            # File is relative to the dependency's output directory
-            # (external manifest)
-            pkg_file = Util.get_abs_path(
-                pkg.filename,
-                os.path.join(out_dir, pkg.module_id)
-                )
-        else:
+        pkg_file = get_pkg_file(project, pkg, prj_dir, out_dir)
+        if pkg_file is None:
             Log.I("Unknown file root {}".format(str(pkg.file_root)))
-        # Determine package processing root
-        if pkg.module_root == project.ROOT.SOURCE:
-            # File is relative to the package folder
-            pkg_root = os.path.dirname(pkg_file)
-        elif pkg.module_root == project.ROOT.DEPENDENCY:
-            # File is relative to the dependency's output directory
-            # (local manifest)
-            pkg_root = os.path.join(out_dir, pkg.module_id)
-        else:
+        pkg_root = get_pkg_root(project, pkg, pkg_file, out_dir)
+        if pkg_root is None:
             Log.I("Unknown package root {}".format(str(pkg.file_root)))
         Log.I("  {}".format(pkg_file))
         manifest = build_manifest(pkg_file, effective_settings, pkg_root)
@@ -253,3 +226,66 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
     #### POSTBUILD CALLBACK ####
     if callbacks.get("postbuild"):
         callbacks.postbuild(callbacks.get("arg", None), metadata)
+
+def get_pkg_file(project, pkg, prj_dir, out_dir):
+    """
+        Get package file
+
+        @param project A Project object
+        @param pkg An element from project.get_packages()
+        @param prj_dir The top-level project directory
+        @param out_dir The top-level output directory
+        @return the absolute path to the package file, or None if indeterminate
+    """
+    if pkg.file_root == project.ROOT.SOURCE:
+        # File is relative to the project directory
+        pkg_file = Util.get_abs_path(pkg.filename, prj_dir)
+    elif pkg.file_root == project.ROOT.DEPENDENCY:
+        # File is relative to the dependency's output directory
+        # (external manifest)
+        pkg_file = Util.get_abs_path(
+            pkg.filename,
+            os.path.join(out_dir, pkg.module_id)
+            )
+    else:
+        pkg_file = None
+    return pkg_file
+
+def get_pkg_root(project, pkg, pkg_file, out_dir):
+    """
+        Get package root
+
+        @param project A Project object
+        @param pkg An element from project.get_packages()
+        @param pkg_file The filename of the package
+        @param out_dir The top-level output directory
+        @return the absolute path to the package processing root, or None if indeterminate
+    """
+    if pkg.module_root == project.ROOT.SOURCE:
+        # File is relative to the package folder
+        pkg_root = os.path.dirname(pkg_file)
+    elif pkg.module_root == project.ROOT.DEPENDENCY:
+        # File is relative to the dependency's output directory
+        # (local manifest)
+        pkg_root = os.path.join(out_dir, pkg.module_id)
+    else:
+        pkg_root = None
+    return pkg_root
+
+def read_project(in_fname, out_dir):
+    """
+        Read project
+
+        @return Tuple containing (Project object with parsed result,
+            Project directory, output directory)
+    """
+    project = Project.new(in_fname, err_fatal=True)
+    parser = ProjectParser.new(project)
+    reader = LineReader.new(parser)
+
+    reader.read_file_by_name(in_fname)
+    cwd = os.getcwd()
+    prj_dir = Util.get_abs_path(os.path.dirname(project.get_filename()), cwd)
+    out_dir = Util.get_abs_path(out_dir, cwd)
+
+    return (project, prj_dir, out_dir)
