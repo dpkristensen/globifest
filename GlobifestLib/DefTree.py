@@ -338,4 +338,45 @@ class DefTree(Scope):
         observer.on_def_begin(self.filename)
         Scope.walk(self, observer, child_sorter=child_sorter, param_sorter=param_sorter)
 
+class DefForest(Scope):
+    """
+        This class aggregates information from multiple DefTrees via the walk() method
+    """
+
+    class ParamTextGetter(object):
+        """
+            Return a callable object that fetches the parameter title
+        """
+        def __call__(self, obj):
+            return obj.param.get_text().lower()
+
+    def __init__(self):
+        Scope.__init__(self, scope_name="/", parent_scope=None)
+        self.scope_stack = list()
+        self.cur_filename = ""
+
+    def on_def_begin(self, filename):
+        """Save the filename associated with the DefTree"""
+        self.cur_filename = filename
+
+    def on_param(self, param):
+        """Save all the relevant information about a parameter"""
+        self.scope_stack[-1].add_param(Util.Container(
+            def_file=self.cur_filename,
+            param=param
+            ))
+
+    def on_scope_begin(self, title, description):
+        """Add a scope level"""
+        if self.scope_stack:
+            new_scope = self.scope_stack[-1].add_child_scope(title)
+            new_scope.set_description(description)
+            self.scope_stack.append(new_scope)
+        else:
+            self.scope_stack.append(self)
+
+    def on_scope_end(self):
+        """Pop the current scope level"""
+        self.scope_stack.pop()
+
 new = DefTree

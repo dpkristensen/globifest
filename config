@@ -31,10 +31,68 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import argparse
+import os
 import sys
 
 from Globiconfig import Main
+from GlobifestLib import Util
+
+def parse_args():
+    """Parse command-line arguments and return the results"""
+
+    parser = argparse.ArgumentParser(
+        description="Globifest Configuration Utility",
+        prefix_chars="-/",
+        fromfile_prefix_chars="@"
+        )
+
+    # Additional help options; but no need to clutter up the help text
+    parser.add_argument(
+        "-?", "/?",
+        help=argparse.SUPPRESS,
+        action="help"
+        )
+
+    parser.add_argument(
+        "-o","--out",
+        help="Output directory (attempts to find automatically if not given)",
+        action="store",
+        default="",
+        metavar="dir"
+        )
+
+    parser.add_argument(
+        "project",
+        help="Project file",
+        action="store",
+        nargs="?",
+        default=""
+        )
+
+    return parser.parse_args()
 
 if __name__ == "__main__":
-    app = Main.App()
+    args = parse_args()
+    if args.project:
+        args.project = Util.get_abs_path(args.project, os.getcwd())
+
+        # if a project name is specified, but not an output directory,
+        # attempt to find it
+        if not args.out:
+            # Look for a folder named "out" in:
+            # 1. The project file's directory
+            # 2. The current working directory
+            search_paths = [os.path.dirname(args.project), os.getcwd()]
+            for path in search_paths:
+                for dir_ent in os.listdir(path=path):
+                    if not os.path.isdir(dir_ent):
+                        continue
+
+                    dir_name = os.path.basename(dir_ent)
+                    if dir_name.find("out") != -1:
+                        args.out = dir_name
+                        print("Auto-detected output directory {}".format(dir_name))
+                        break
+    app = Main.App(args.project, args.out)
     sys.exit(app.run())

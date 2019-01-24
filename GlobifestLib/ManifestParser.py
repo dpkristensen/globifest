@@ -43,6 +43,7 @@ from GlobifestLib import \
     Generators, \
     Log, \
     Matcher, \
+    Settings, \
     StatefulParser, \
     StateMachine, \
     Util
@@ -74,6 +75,23 @@ COND_STATE = Util.create_enum(
     "MET",
     "SATISFIED"
     )
+
+class ConfigsOnly(Settings.Settings):
+    """
+        Class to use when only reading configs
+    """
+
+    def get_value(self, name):
+        """Stub; should never be called"""
+        Log.E("Internal error: cannot return value", err_type=Log.ERROR.RUNTIME)
+
+    def has_value(self, name):
+        """Stub; returns True"""
+        return True
+
+    def evaluate(self, expr):
+        """Stub; returns True"""
+        return True
 
 class Context(object):
     """

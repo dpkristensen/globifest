@@ -31,8 +31,12 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
 import tkinter
-from GlobifestLib import Util
+import tkinter.ttk
+import tkinter.messagebox
+
+from GlobifestLib import Builder, DefTree, Log, ManifestParser, Util
 
 ACCEL = Util.create_enum(
     "CONTROL"
@@ -56,17 +60,129 @@ DIVIDER_WIDTH = 8
 
 assert (PANE_0_MINWIDTH + PANE_1_MINWIDTH) <= WINDOW_MINWIDTH
 
+CFG_TAG = Util.create_enum(
+    "MENU",
+    "PARAM"
+    )
+
+def gui_child_sorter(children):
+    """Sorter (PEP 265) for children to be shown in the config tree"""
+    return sorted(children, key=DefTree.DefForest.ChildNameGetter())
+
+def gui_param_sorter(params):
+    """Sorter (PEP 265) for parameters to be shown in the config tree"""
+    return sorted(params, key=DefTree.DefForest.ParamTextGetter())
+
+class CfgTreeObserver(object):
+    """Observer for DefForest to add items to the config tree"""
+
+    def __init__(self, cfg_tree, param_tbl):
+        # Links to objects owned by application
+        self.cfg_tree = cfg_tree
+        self.param_tbl = param_tbl
+
+        # Temporary workspace variables
+        self.param_tree = list()
+        self.root_stack = list()
+        self.counter_stack = list()
+        self.level = 0
+
+    def on_param(self, param):
+        """Save parameters to be added after all children"""
+        self.param_tree[-1].append(param)
+
+    def on_scope_begin(self, title, description):
+        """Add a child item"""
+        # Add a new empty param tree level
+        self.param_tree.append(list())
+
+        self.level += 1
+        if self.level == 1:
+            # Only process parameters in the top scope
+            return
+
+        # Incrememt the counter; each child will be identified within its
+        # parent level numerically: 1, 2, 3, etc...
+        if self.counter_stack:
+            self.counter_stack[-1] += 1
+        else:
+            self.counter_stack.append(0)
+
+        # Join the counters together to form a unique IID representative of
+        # its position in the tree: 1, 1_1, 2_1_3, etc...
+        new_iid = "_".join(str(c) for c in self.counter_stack)
+
+        if self.root_stack:
+            parent = self.root_stack[-1]
+        else:
+            parent = ""
+
+        # Add a new element to this tree level
+        self.counter_stack.append(0)
+        self.cfg_tree.insert(
+            parent=parent,
+            index="end",
+            iid=new_iid,
+            text=title,
+            values=(description,),
+            tags=(CFG_TAG.MENU,)
+            )
+
+        # Add the new IID to the root stack for children in this scope
+        self.root_stack.append(new_iid)
+
+    def on_scope_end(self):
+        """Pop the current scope level"""
+        self.level -= 1
+        if self.level == 0:
+            # Adjust parent for top-level parameters
+            parent = ""
+        else:
+            parent = self.root_stack[-1]
+
+        # Add all saved params, so that they appear below the child trees
+        for p in self.param_tree[-1]:
+            pid = p.param.get_identifier()
+            self.param_tbl[pid] = p
+            self.cfg_tree.insert(
+                parent=parent,
+                index="end",
+                iid=pid,
+                text=p.param.get_text(),
+                values=(pid,),
+                tags=(CFG_TAG.PARAM,)
+                )
+
+        # Clear the param tree for the next iteration
+        self.param_tree.pop()
+
+        if self.level == 0:
+            # Only process parameters in top scope
+            return
+
+        self.root_stack.pop()
+        self.counter_stack.pop()
+
+
 class App(object):
     """
         Main Application
     """
 
-    def __init__(self):
+    APP_TITLE = "Globiconfig"
+
+    def __init__(self, project_file, out_dir):
+        self.project_file = project_file
+        self.out_dir = out_dir
+        self.project = None
+        self.param_tbl = Util.Container()
+
+        # Set up tkinter app root; this is not a super-class so the API is private
         self.app_root = tkinter.Tk()
-        self.app_root.title("Globiconfig")
+        self.app_root.title(self.APP_TITLE)
         self.app_root.minsize(width=WINDOW_MINWIDTH, height=200)
 
-        # Divide the window into two panes, whcih stretch according to the divider's size
+        # Divide the window into two panes, which stretch according to the divider's size
         pane_divider = tkinter.PanedWindow(
             self.app_root,
             handlesize=DIVIDER_WIDTH,
@@ -74,9 +190,9 @@ class App(object):
             sashrelief=tkinter.GROOVE
             )
         pane_divider.grid(sticky=STICKY_FILL)
-        self.pane_0 = tkinter.Frame(pane_divider)
+        self.pane_0 = tkinter.ttk.Frame(pane_divider, padding=PADDING)
         pane_divider.add(self.pane_0, stretch="never")
-        self.pane_1 = tkinter.Frame(pane_divider)
+        self.pane_1 = tkinter.ttk.Frame(pane_divider, padding=PADDING)
         pane_divider.add(self.pane_1, stretch="always")
         pane_divider.grid(sticky=STICKY_FILL)
         pane_divider.paneconfigure(self.pane_0, minsize=PANE_0_MINWIDTH)
@@ -91,23 +207,6 @@ class App(object):
         self.create_menu_bar()
         self.create_pane_0()
         self.create_pane_1()
-
-        # Add some fake data for testing
-        for i in [
-                "FOO_SUPPORT",
-                "BAZ_ADDRESS",
-                "BAZ_SHIZZLE",
-                "BAZ_RST_GPIO",
-                "BAZ_RST_GPIO_PULL_CFG",
-                "BAZ_IRQ_GPIO",
-                "BAZ_IRQ_GPIO_PULL_CFG",
-                "BAZ_IRQ_TRIGGER_CFG",
-                "BAR_ID",
-                "BAR_NIZZLE",
-                "BAR_FORMAT"
-            ]:
-            self.cfg_list.insert(tkinter.END, i)
-        self.set_description("Description goes here\non multiple lines!")
 
     def add_menu_item(self, top_menu, cmd):
         """Add a single menu item to top_menu"""
@@ -129,7 +228,7 @@ class App(object):
             self.app_root.bind_all(binding, cmd.f)
 
     def add_menu_items(self, top_menu, cmd_list):
-        """"Add a lsit of menu items to top_menu"""
+        """"Add a list of menu items to top_menu"""
         for i in cmd_list:
             self.add_menu_item(top_menu, i)
 
@@ -141,7 +240,7 @@ class App(object):
 
         file_menu = tkinter.Menu(top_menu, tearoff=0)
         self.add_menu_items(file_menu, [
-            M(t="&Open", f=self.on_menu_file_open),
+            M(t="&Open...", f=self.on_menu_file_open),
             M(t="&Close", f=self.on_menu_file_close),
             "-",
             M(t="E&xit", f=self.on_menu_file_exit)
@@ -159,32 +258,34 @@ class App(object):
         # Auto-resize child objects to pane width
         self.pane_0.grid_columnconfigure(0, weight=1)
 
-        # Navigation bar at the top; match the list width
-        self.nav_bar = tkinter.LabelFrame(
-            self.pane_0,
-            text="Navigation Bar",
-            padx=PADDING,
-            pady=PADDING
+        # Create the config tree in a parent frame for layout
+        cfg_frame = tkinter.ttk.Frame(self.pane_0)
+        h_scrollbar = tkinter.ttk.Scrollbar(cfg_frame, orient=tkinter.HORIZONTAL)
+        v_scrollbar = tkinter.ttk.Scrollbar(cfg_frame, orient=tkinter.VERTICAL)
+        self.cfg_tree = tkinter.ttk.Treeview(
+            cfg_frame,
+            selectmode='browse',
+            yscrollcommand=v_scrollbar.set,
+            xscrollcommand=h_scrollbar.set,
+            show="tree"
             )
-        self.nav_bar.grid(row=0, sticky=STICKY_FILL, padx=PADDING)
-
-        # Create the top-level menu navigator
-        home_btn = tkinter.Button(self.nav_bar, text="/", relief=tkinter.SUNKEN)
-        home_btn.grid(sticky=tkinter.W)
-        self.nav_btns = [home_btn]
-
-        # Create the config list in a parent frame for layout
-        cfg_frame = tkinter.Frame(self.pane_0)
-        scrollbar = tkinter.Scrollbar(cfg_frame, orient=tkinter.VERTICAL)
-        self.cfg_list = tkinter.Listbox(cfg_frame, yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.cfg_list.yview)
-        self.cfg_list.grid(row=0, column=0, sticky=STICKY_FILL)
-        scrollbar.grid(row=0, column=1, sticky=STICKY_FILL)
+        v_scrollbar.config(command=self.cfg_tree.yview)
+        h_scrollbar.config(command=self.cfg_tree.xview)
+        self.cfg_tree.grid(row=0, column=0, sticky=STICKY_FILL)
+        v_scrollbar.grid(row=0, column=1, sticky=STICKY_FILL)
         cfg_frame.grid(row=1, padx=PADDING, pady=PADDING, sticky=STICKY_FILL)
         # Resize the list to match the window
         cfg_frame.grid_columnconfigure(0, weight=1)
         cfg_frame.grid_rowconfigure(0, weight=1)
         self.pane_0.grid_rowconfigure(1, weight=1)
+
+        def bind_cfg_tree_cb(_event=None):
+            """Binding method to call the handler"""
+            iid = self.cfg_tree.focus()
+            sel = self.cfg_tree.item(iid)
+            self.on_cfg_tree_click(sel["values"][0], sel["tags"][0])
+
+        self.cfg_tree.bind("<ButtonRelease-1>", bind_cfg_tree_cb)
 
     def create_pane_1(self):
         """
@@ -209,6 +310,16 @@ class App(object):
             )
         self.desc_txt.grid()
         self.set_description("")
+
+    def on_cfg_tree_click(self, value, tag):
+        """Handle item clicks"""
+        if tag == CFG_TAG.PARAM:
+            item = self.param_tbl[value]
+            self.set_description(item.param.get_description())
+        elif tag == CFG_TAG.MENU:
+            self.set_description(value)
+        else:
+            self.set_description("")
 
     def on_menu_about(self, event=None):
         """Show the about dialog"""
@@ -239,6 +350,8 @@ class App(object):
 
     def run(self):
         """Run the application, and return success"""
+        if self.project_file:
+            self._open_project()
 
         self.app_root.mainloop()
         return 0
@@ -249,3 +362,64 @@ class App(object):
         self.desc_txt.delete(1.0, tkinter.END)
         self.desc_txt.insert(tkinter.END, text)
         self.desc_txt.config(state=tkinter.DISABLED)
+
+    def _clear_gui(self):
+        # Delete all items in the config tree
+        top_items = self.cfg_tree.get_children()
+        if top_items:
+            self.cfg_tree.delete(top_items)
+
+        # Clear other text fields
+        self.set_description("")
+
+    def _open_project(self):
+        try:
+            project, prj_dir, out_dir = Builder.read_project(self.project_file, self.out_dir)
+        except Log.GlobifestException as e:
+            tkinter.messagebox.showerror(self.APP_TITLE, str(e))
+            return
+
+        def_trees = list()
+
+        for pkg in project.get_packages():
+            pkg_file = Builder.get_pkg_file(project, pkg, prj_dir, out_dir)
+            if not pkg_file:
+                tkinter.messagebox.showerror(
+                    self.APP_TITLE,
+                    "Unknown file root {}".format(str(pkg.file_root))
+                    )
+                return
+            pkg_root = Builder.get_pkg_root(project, pkg, pkg_file, out_dir)
+            if pkg_root is None:
+                tkinter.messagebox.showerror(
+                    self.APP_TITLE,
+                    "Unknown package root {}".format(str(pkg.file_root))
+                    )
+                return
+
+            manifest = Builder.build_manifest(pkg_file, ManifestParser.ConfigsOnly(), pkg_root)
+            pkg_dir = os.path.dirname(pkg_file)
+            for cfg in manifest.get_configs():
+                cfg.definition = Util.get_abs_path(cfg.definition, pkg_dir)
+                def_tree = Builder.build_definition(cfg.definition)
+                def_trees.append(def_tree)
+
+        # Aggregate DefTrees into a single list
+        forest = DefTree.DefForest()
+        for tree in def_trees:
+            tree.walk(forest)
+
+        self.project = project
+
+        # Clear GUI elements
+        self._clear_gui()
+
+        # Set the window title
+        self.app_root.title("{} - {}".format(self.APP_TITLE, self.project.get_name()))
+
+        # Walk the forest to populate the config tree
+        forest.walk(
+            CfgTreeObserver(self.cfg_tree, self.param_tbl),
+            child_sorter=gui_child_sorter,
+            param_sorter=gui_param_sorter
+            )
