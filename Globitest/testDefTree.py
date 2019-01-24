@@ -35,6 +35,26 @@ import unittest
 
 from GlobifestLib import DefTree, Settings, Util
 
+class DefTreeTestObserver(object):
+    def __init__(self):
+        self.lines = list()
+
+    def on_def_begin(self, filename):
+        """Process beginning of DefTree"""
+        self.lines.append("def_begin: {}".format(filename))
+
+    def on_param(self, param):
+        """Process a parameter"""
+        self.lines.append("param: {}".format(param.get_text()))
+
+    def on_scope_begin(self, title, description):
+        """Process increase in scope level"""
+        self.lines.append("scope_begin: {}".format(title))
+
+    def on_scope_end(self):
+        """Process decrease in scope level"""
+        self.lines.append("scope_end")
+
 class TestDefTree(unittest.TestCase):
 
     def setUp(self):
@@ -322,3 +342,65 @@ class TestDefTree(unittest.TestCase):
                 t[1],
                 msg="'{}' -> {}".format(t[0], t[1])
                 )
+
+    def test_walk(self):
+        c = DefTree.new()
+
+        scope_b = c.add_child_scope("scope_b")
+        scope_b.add_param(self.pb)
+        scope_b.add_param(self.pd)
+        scope_a = c.add_child_scope("scope_a")
+        scope_a.add_param(self.pa)
+        scope_a.add_param(self.pc)
+
+        observer = DefTreeTestObserver()
+        c.walk(observer)
+        self.assertListEqual([
+            "def_begin: ",
+            "scope_begin: /",
+            "scope_begin: scope_b",
+            "param: Value B",
+            "param: IDENTIFIER_D",
+            "scope_end",
+            "scope_begin: scope_a",
+            "param: Value A",
+            "param: Value C",
+            "scope_end",
+            "scope_end"
+            ], observer.lines)
+
+    def test_walk_sorted(self):
+        c = DefTree.new()
+
+        scope_b = c.add_child_scope("scope_b")
+        scope_b.add_param(self.pb)
+        scope_b.add_param(self.pd)
+        scope_a = c.add_child_scope("scope_a")
+        scope_a.add_param(self.pa)
+        scope_a.add_param(self.pc)
+
+        def test_child_alpha_sort(children):
+            return sorted(children, key=DefTree.Scope.ChildNameGetter())
+
+        def test_param_alpha_sort(params):
+            return sorted(params, key=DefTree.Scope.ParamTextGetter())
+
+        observer = DefTreeTestObserver()
+        c.walk(
+            observer,
+            child_sorter=test_child_alpha_sort,
+            param_sorter=test_param_alpha_sort
+            )
+        self.assertListEqual([
+            "def_begin: ",
+            "scope_begin: /",
+            "scope_begin: scope_a",
+            "param: Value A",
+            "param: Value C",
+            "scope_end",
+            "scope_begin: scope_b",
+            "param: IDENTIFIER_D",
+            "param: Value B",
+            "scope_end",
+            "scope_end"
+            ], observer.lines)

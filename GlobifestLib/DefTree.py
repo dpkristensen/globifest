@@ -45,6 +45,11 @@ PARAM_TYPE = Util.create_enum(
 SCOPE_TRIM_RE = re.compile("^/|/$")
 
 
+def no_sort(items):
+    """Stub for Scope.walk() method without any sorting"""
+    return items
+
+
 def validate_type(ptype):
     """Returns the ptype validated as a PARAM_TYPE value, or None if invalid"""
     if not isinstance(ptype, str):
@@ -204,8 +209,23 @@ class RelevantParamMatcher(object):
         """Handle the end of a scope"""
         pass
 
+
 class Scope(object):
     """Encapsulates a collection of Parameters and nested sub-Scopes"""
+
+    class ChildNameGetter(object):
+        """
+            Getter for sorting by child name
+        """
+        def __call__(self, obj):
+            return obj[1].scope_name.lower()
+
+    class ParamTextGetter(object):
+        """
+            Getter for sorting by parameter text
+        """
+        def __call__(self, obj):
+            return obj.get_text().lower()
 
     def __init__(self, scope_name, parent_scope):
         self.children = Util.Container()
@@ -260,14 +280,14 @@ class Scope(object):
         else:
             self.description += "\n\n" + text
 
-    def walk(self, observer):
+    def walk(self, observer, child_sorter=no_sort, param_sorter=no_sort):
         # pylint: disable=W0612
         """Walk the tree and visit each node with the given observer"""
         observer.on_scope_begin(self.scope_name, self.description)
-        for name, obj in self.children:
-            obj.walk(observer)
+        for name, obj in child_sorter(self.children):
+            obj.walk(observer, child_sorter=child_sorter, param_sorter=param_sorter)
 
-        for p in self.params:
+        for p in param_sorter(self.params):
             observer.on_param(p)
 
         observer.on_scope_end()
@@ -313,9 +333,9 @@ class DefTree(Scope):
             scope = scope.add_child_scope(node_name)
         return scope
 
-    def walk(self, observer):
+    def walk(self, observer, child_sorter=no_sort, param_sorter=no_sort):
         """Walk the tree and visit each node with the given observer"""
         observer.on_def_begin(self.filename)
-        Scope.walk(self, observer)
+        Scope.walk(self, observer, child_sorter=child_sorter, param_sorter=param_sorter)
 
 new = DefTree
