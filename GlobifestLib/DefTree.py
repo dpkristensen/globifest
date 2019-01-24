@@ -133,6 +133,10 @@ class Parameter(object):
         """Returns the PARAM_TYPE"""
         return self.ptype
 
+    def get_text(self):
+        """Returns the title if present, or the identifier otherwise"""
+        return self.ptitle or self.pid
+
 class PrintObserver(object):
     """This class can be used to print a Scope or DefTree"""
 

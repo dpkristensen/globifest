@@ -61,7 +61,7 @@ class TestDefTree(unittest.TestCase):
             )
         self.pd = DefTree.Parameter(
             pid="IDENTIFIER_D",
-            ptitle="Value D",
+            ptitle="", # Empty title
             ptype=DefTree.PARAM_TYPE.FLOAT,
             pdesc="Description of D"
             # No default
@@ -80,6 +80,7 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pa.get_identifier(), "IDENTIFIER_A")
         self.assertEqual(self.pa.get_title(), "Value A")
         self.assertEqual(self.pa.get_type(), DefTree.PARAM_TYPE.BOOL)
+        self.assertEqual(self.pa.get_text(), "Value A")
         self.assertEqual(str(self.pa), "id=IDENTIFIER_A type=BOOL title=Value A default=FALSE desc=Description of A")
 
         self.assertEqual(self.pb.get_default_value(), "Default Text")
@@ -87,6 +88,7 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pb.get_identifier(), "IDENTIFIER_B")
         self.assertEqual(self.pb.get_title(), "Value B")
         self.assertEqual(self.pb.get_type(), DefTree.PARAM_TYPE.STRING)
+        self.assertEqual(self.pb.get_text(), "Value B")
         self.assertEqual(str(self.pb), "id=IDENTIFIER_B type=STRING title=Value B default=Default Text")
 
         self.assertEqual(self.pc.get_default_value(), None)
@@ -94,14 +96,16 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pc.get_identifier(), "IDENTIFIER_C")
         self.assertEqual(self.pc.get_title(), "Value C")
         self.assertEqual(self.pc.get_type(), DefTree.PARAM_TYPE.INT)
+        self.assertEqual(self.pc.get_text(), "Value C")
         self.assertEqual(str(self.pc), "id=IDENTIFIER_C type=INT title=Value C desc=Description of C")
 
         self.assertEqual(self.pd.get_default_value(), None)
         self.assertEqual(self.pd.get_description(), "Description of D")
         self.assertEqual(self.pd.get_identifier(), "IDENTIFIER_D")
-        self.assertEqual(self.pd.get_title(), "Value D")
+        self.assertEqual(self.pd.get_title(), "")
         self.assertEqual(self.pd.get_type(), DefTree.PARAM_TYPE.FLOAT)
-        self.assertEqual(str(self.pd), "id=IDENTIFIER_D type=FLOAT title=Value D desc=Description of D")
+        self.assertEqual(self.pd.get_text(), "IDENTIFIER_D")
+        self.assertEqual(str(self.pd), "id=IDENTIFIER_D type=FLOAT desc=Description of D")
 
     def test_flat_config(self):
         c = DefTree.new(filename="test.def")
