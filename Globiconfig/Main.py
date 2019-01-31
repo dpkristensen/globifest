@@ -285,7 +285,7 @@ class App(object):
             sel = self.cfg_tree.item(iid)
             self.on_cfg_tree_click(sel["values"][0], sel["tags"][0])
 
-        self.cfg_tree.bind("<ButtonRelease-1>", bind_cfg_tree_cb)
+        self.cfg_tree.bind("<<TreeviewSelect>>", bind_cfg_tree_cb)
 
     def create_pane_1(self):
         """
