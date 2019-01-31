@@ -293,23 +293,25 @@ class App(object):
         """
         # Auto-resize child objects to pane width
         self.pane_1.grid_columnconfigure(0, weight=1)
+        self.pane_1.grid_rowconfigure(0, weight=1)
 
         # Description area
-        desc_frame = tkinter.LabelFrame(
+        desc_frame = tkinter.ttk.LabelFrame(
             self.pane_1,
             text="Description",
-            padx=PADDING,
-            pady=PADDING
+            padding=PADDING
             )
-        desc_frame.grid(row=1, sticky=STICKY_FILL, padx=PADDING)
+        desc_frame.grid(row=0, column=0, sticky=STICKY_FILL)
         self.desc_txt = tkinter.Text(
             desc_frame,
             font="TkFixedFont",
             relief=tkinter.FLAT,
-            bg=desc_frame.cget("background")
+            background=tkinter.ttk.Style().lookup("TLabelFrame", "background"),
+            wrap=tkinter.WORD
             )
-        self.desc_txt.grid()
+        self.desc_txt.grid(row=0, column=0, sticky=STICKY_FILL)
         self.set_description("")
+        self.desc_txt.pack()
 
     def on_cfg_tree_click(self, value, tag):
         """Handle item clicks"""
