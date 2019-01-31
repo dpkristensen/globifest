@@ -56,7 +56,7 @@ PANE_0_MINWIDTH = 100
 PANE_1_MINWIDTH = 100
 WINDOW_MINWIDTH = 300
 WINDOW_MINHEIGHT = 200
-DIVIDER_WIDTH = 8
+DIVIDER_WIDTH = 4
 
 assert (PANE_0_MINWIDTH + PANE_1_MINWIDTH) <= WINDOW_MINWIDTH
 
@@ -185,9 +185,8 @@ class App(object):
         # Divide the window into two panes, which stretch according to the divider's size
         pane_divider = tkinter.PanedWindow(
             self.app_root,
-            handlesize=DIVIDER_WIDTH,
             sashwidth=DIVIDER_WIDTH,
-            sashrelief=tkinter.GROOVE
+            sashrelief=tkinter.SUNKEN
             )
         pane_divider.grid(sticky=STICKY_FILL)
         self.pane_0 = tkinter.ttk.Frame(pane_divider, padding=PADDING)
