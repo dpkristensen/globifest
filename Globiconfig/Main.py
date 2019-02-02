@@ -176,6 +176,8 @@ class App(object):
         self.project = None
         self.param_tbl = Util.Container()
         self.settings_view_tbl = Util.Container()
+        self.settings_cache = Util.Container()
+        self.cur_tree_item = None
 
         # Set up tkinter app root; this is not a super-class so the API is private
         self.app_root = tkinter.Tk()
@@ -194,6 +196,8 @@ class App(object):
         self.settings_layer_lbl = None
         self.settings_variant_cmb = None
         self.settings_variant_lbl = None
+        self.src_frame = None
+        self.src_txt = None
 
         # Set up control variables
         self.cur_layer = tkinter.StringVar()
@@ -339,6 +343,7 @@ class App(object):
 
         self.create_pane_1_view(0)
         self.create_pane_1_description(1)
+        self.create_pane_1_source(2)
 
     def create_pane_1_view(self, row):
         """
@@ -438,15 +443,50 @@ class App(object):
             )
         self.set_description("")
 
+    def create_pane_1_source(self, row):
+        """
+            Create the source box on the right side of the window
+        """
+        # Do not resize source row
+        self.pane_1.grid_rowconfigure(row, weight=0)
+
+        self._add_container_control(
+            "src_frame",
+            tkinter.ttk.LabelFrame(
+                self.pane_1,
+                text="Source",
+                padding=PADDING
+                ),
+            row=row
+            )
+        self._add_leaf_control(
+            "src_txt",
+            tkinter.Text(
+                self.src_frame,
+                font="TkFixedFont",
+                relief=tkinter.FLAT,
+                background=tkinter.ttk.Style().lookup("TLabelFrame", "background"),
+                height=5,
+                wrap=tkinter.WORD
+                )
+            )
+        self.set_source("")
+
     def on_cfg_tree_click(self, value, tag):
         """Handle item clicks"""
         if tag == CFG_TAG.PARAM:
             item = self.param_tbl[value]
             self.set_description(item.param.get_description())
+            self.update_source(item)
+            self.cur_tree_item = item
         elif tag == CFG_TAG.MENU:
             self.set_description(value)
+            self.set_source("")
+            self.cur_tree_item = None
         else:
             self.set_description("")
+            self.set_source("")
+            self.cur_tree_item = None
 
     def on_cur_layer_changed(self, value):
         """Handle changes to the currently selected layer"""
@@ -494,6 +534,9 @@ class App(object):
             value_list.append("{}={}".format(layer, self.settings_view_tbl[layer]))
         self.settings_layer_cmb.configure(values=value_list)
 
+        if self.cur_tree_item:
+            self.update_source(self.cur_tree_item)
+
     def on_menu_about(self, event=None):
         """Show the about dialog"""
         #pylint: disable=unused-argument
@@ -535,6 +578,13 @@ class App(object):
         self.desc_txt.delete(1.0, tkinter.END)
         self.desc_txt.insert(tkinter.END, text)
         self.desc_txt.config(state=tkinter.DISABLED)
+
+    def set_source(self, text):
+        """Set the text in the source box"""
+        self.src_txt.config(state=tkinter.NORMAL)
+        self.src_txt.delete(1.0, tkinter.END)
+        self.src_txt.insert(tkinter.END, text)
+        self.src_txt.config(state=tkinter.DISABLED)
 
     def _add_container_control(self, name, control, row=0, col=0, num_rows=1, num_cols=1):
         # Create a control which has at least one child
@@ -620,11 +670,24 @@ class App(object):
 
         # Set up layer/variant boxes
         self.settings_view_tbl.clear()
+        self.settings_cache.clear()
         layer_names = project.get_layer_names()
         if layer_names:
             for layer in layer_names:
                 variant_names = project.get_variant_names(layer)
                 self.settings_view_tbl[layer] = (variant_names[0] if variant_names else "")
+
+                # Build the settings cache
+                layer_cache = Util.Container()
+                self.settings_cache[layer] = layer_cache
+                for variant in variant_names:
+                    variant_cache = Util.Container()
+                    layer_cache[variant] = variant_cache
+                    variant_target = self.project.get_target(layer, variant)
+                    variant_target.filename = Util.get_abs_path(variant_target.filename, prj_dir)
+                    variant_cache["target"] = variant_target
+                    variant_cache["config"] = Builder.build_config(variant_target.filename)
+
             value_list = []
             for layer in layer_names:
                 value_list.append("{}={}".format(layer, self.settings_view_tbl[layer]))
@@ -632,3 +695,30 @@ class App(object):
             self.settings_layer_cmb.configure(values=value_list)
             self.cur_layer.set(layer_names[0])
             # Variant will propagate via layer change
+
+    def update_source(self, item):
+        """Update the source box for the given item"""
+        pid = item.param.get_identifier()
+        out = []
+        out.append(item.def_file)
+        # Iterate through each layer and the currently selected variant
+        effective_setting = -1
+        values = []
+        for layer, l_cache in self.settings_cache:
+            variant = self.settings_view_tbl[layer]
+            v_cache = l_cache[self.settings_view_tbl[layer]]
+            settings = v_cache.config.get_settings()
+            # Catching KeyError here to distinguish value being present with "None" value
+            try:
+                value = settings.get_value(pid)
+                entry_text = "[{}][{}] = {}".format(layer, variant, str(value))
+                values.append(entry_text)
+                effective_setting += 1
+            except KeyError:
+                pass
+
+        for e in enumerate(values):
+            prefix = "*" if (e[0] == effective_setting) else " "
+            out.append(prefix + e[1])
+
+        self.set_source(os.linesep.join(out))
