@@ -182,20 +182,41 @@ class App(object):
         self.app_root.title(self.APP_TITLE)
         self.app_root.minsize(width=WINDOW_MINWIDTH, height=200)
 
+        # Forward declarations to keep pylint happy
+        self.cfg_tree = None
+        self.cfg_tree_h_scrollbar = None
+        self.cfg_tree_v_scrollbar = None
+        self.desc_frame = None
+        self.desc_txt = None
+        self.pane_divider = None
+
         # Divide the window into two panes, which stretch according to the divider's size
-        pane_divider = tkinter.PanedWindow(
-            self.app_root,
-            sashwidth=DIVIDER_WIDTH,
-            sashrelief=tkinter.SUNKEN
+        # pane_divider and its frames don't use normal grid layout, so these are setup
+        # differently than the other controls.
+        self._add_leaf_control(
+            "pane_divider",
+            tkinter.PanedWindow(
+                self.app_root,
+                sashwidth=DIVIDER_WIDTH,
+                sashrelief=tkinter.SUNKEN
+                )
             )
-        pane_divider.grid(sticky=STICKY_FILL)
-        self.pane_0 = tkinter.ttk.Frame(pane_divider, padding=PADDING)
-        pane_divider.add(self.pane_0, stretch="never")
-        self.pane_1 = tkinter.ttk.Frame(pane_divider, padding=PADDING)
-        pane_divider.add(self.pane_1, stretch="always")
-        pane_divider.grid(sticky=STICKY_FILL)
-        pane_divider.paneconfigure(self.pane_0, minsize=PANE_0_MINWIDTH)
-        pane_divider.paneconfigure(self.pane_1, minsize=PANE_1_MINWIDTH)
+        self.pane_0 = tkinter.ttk.Frame(self.pane_divider, padding=PADDING)
+        self.pane_divider.add(self.pane_0)
+        self.pane_1 = tkinter.ttk.Frame(self.pane_divider, padding=PADDING)
+        self.pane_divider.add(self.pane_1)
+        self.pane_divider.paneconfigure(
+            self.pane_0,
+            padx=PADDING,
+            pady=PADDING,
+            minsize=PANE_0_MINWIDTH
+            )
+        self.pane_divider.paneconfigure(
+            self.pane_1,
+            padx=PADDING,
+            pady=PADDING,
+            minsize=PANE_1_MINWIDTH
+            )
 
         # Make the cell containing the pane divider autoresize, which in turn allows the
         # panes and their children resize.
@@ -256,28 +277,39 @@ class App(object):
         """
         # Auto-resize child objects to pane width
         self.pane_0.grid_columnconfigure(0, weight=1)
+        self.pane_0.grid_rowconfigure(0, weight=1)
 
-        # Create the config tree in a parent frame for layout
-        cfg_frame = tkinter.ttk.Frame(self.pane_0)
-        h_scrollbar = tkinter.ttk.Scrollbar(cfg_frame, orient=tkinter.HORIZONTAL)
-        v_scrollbar = tkinter.ttk.Scrollbar(cfg_frame, orient=tkinter.VERTICAL)
-        self.cfg_tree = tkinter.ttk.Treeview(
-            cfg_frame,
-            selectmode='browse',
-            yscrollcommand=v_scrollbar.set,
-            xscrollcommand=h_scrollbar.set,
-            show="tree"
+        self._add_leaf_control(
+            "cfg_tree",
+            tkinter.ttk.Treeview(
+                self.pane_0,
+                selectmode='browse',
+                show="tree"
+                )
             )
-        v_scrollbar.config(command=self.cfg_tree.yview)
-        h_scrollbar.config(command=self.cfg_tree.xview)
-        self.cfg_tree.grid(row=0, column=0, sticky=STICKY_FILL)
-        v_scrollbar.grid(row=0, column=1, sticky=STICKY_FILL)
-        cfg_frame.grid(row=1, padx=PADDING, pady=PADDING, sticky=STICKY_FILL)
-        # Resize the list to match the window
-        cfg_frame.grid_columnconfigure(0, weight=1)
-        cfg_frame.grid_rowconfigure(0, weight=1)
-        self.pane_0.grid_rowconfigure(1, weight=1)
 
+        self._add_leaf_control(
+            "cfg_tree_h_scrollbar",
+            tkinter.ttk.Scrollbar(self.pane_0, orient=tkinter.HORIZONTAL),
+            row=1,
+            col=0
+            )
+        self._add_leaf_control(
+            "cfg_tree_v_scrollbar",
+            tkinter.ttk.Scrollbar(self.pane_0, orient=tkinter.VERTICAL),
+            row=0,
+            col=1
+            )
+
+        # Crosslink scroll bars and tree
+        self.cfg_tree_h_scrollbar.config(command=self.cfg_tree.xview)
+        self.cfg_tree_v_scrollbar.config(command=self.cfg_tree.yview)
+        self.cfg_tree.configure(
+            xscrollcommand=self.cfg_tree_h_scrollbar.set,
+            yscrollcommand=self.cfg_tree_v_scrollbar.set
+            )
+
+        # Bind selection handler to this object
         def bind_cfg_tree_cb(_event=None):
             """Binding method to call the handler"""
             iid = self.cfg_tree.focus()
@@ -290,27 +322,37 @@ class App(object):
         """
             Create the controls on the right side of the window
         """
-        # Auto-resize child objects to pane width
+        # Make all controls expand horizontally with the window
         self.pane_1.grid_columnconfigure(0, weight=1)
-        self.pane_1.grid_rowconfigure(0, weight=1)
 
-        # Description area
-        desc_frame = tkinter.ttk.LabelFrame(
-            self.pane_1,
-            text="Description",
-            padding=PADDING
+        self.create_pane_1_description(0)
+
+    def create_pane_1_description(self, row):
+        """
+            Create the description box on the right side of the window
+        """
+        # Make this row expand with the size of the window
+        self.pane_1.grid_rowconfigure(row, weight=1)
+
+        self._add_container_control(
+            "desc_frame",
+            tkinter.ttk.LabelFrame(
+                self.pane_1,
+                text="Description",
+                padding=PADDING
+                )
             )
-        desc_frame.grid(row=0, column=0, sticky=STICKY_FILL)
-        self.desc_txt = tkinter.Text(
-            desc_frame,
-            font="TkFixedFont",
-            relief=tkinter.FLAT,
-            background=tkinter.ttk.Style().lookup("TLabelFrame", "background"),
-            wrap=tkinter.WORD
+        self._add_leaf_control(
+            "desc_txt",
+            tkinter.Text(
+                self.desc_frame,
+                font="TkFixedFont",
+                relief=tkinter.FLAT,
+                background=tkinter.ttk.Style().lookup("TLabelFrame", "background"),
+                wrap=tkinter.WORD
+                )
             )
-        self.desc_txt.grid(row=0, column=0, sticky=STICKY_FILL)
         self.set_description("")
-        self.desc_txt.pack()
 
     def on_cfg_tree_click(self, value, tag):
         """Handle item clicks"""
@@ -363,6 +405,19 @@ class App(object):
         self.desc_txt.delete(1.0, tkinter.END)
         self.desc_txt.insert(tkinter.END, text)
         self.desc_txt.config(state=tkinter.DISABLED)
+
+    def _add_container_control(self, name, control, row=0, col=0, num_rows=1, num_cols=1):
+        # Create a control which has at least one child
+        self._add_leaf_control(name, control, row, col)
+        for i in range(num_cols):
+            control.grid_columnconfigure(i, weight=1)
+        for i in range(num_rows):
+            control.grid_rowconfigure(i, weight=1)
+
+    def _add_leaf_control(self, name, control, row=0, col=0):
+        # Create a control which has no children
+        setattr(self, name, control)
+        control.grid(row=row, column=col, sticky=STICKY_FILL)
 
     def _clear_gui(self):
         # Delete all items in the config tree
