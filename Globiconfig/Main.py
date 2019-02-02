@@ -163,7 +163,6 @@ class CfgTreeObserver(object):
         self.root_stack.pop()
         self.counter_stack.pop()
 
-
 class App(object):
     """
         Main Application
@@ -176,6 +175,7 @@ class App(object):
         self.out_dir = out_dir
         self.project = None
         self.param_tbl = Util.Container()
+        self.settings_view_tbl = Util.Container()
 
         # Set up tkinter app root; this is not a super-class so the API is private
         self.app_root = tkinter.Tk()
@@ -189,6 +189,17 @@ class App(object):
         self.desc_frame = None
         self.desc_txt = None
         self.pane_divider = None
+        self.settings_frame = None
+        self.settings_layer_cmb = None
+        self.settings_layer_lbl = None
+        self.settings_variant_cmb = None
+        self.settings_variant_lbl = None
+
+        # Set up control variables
+        self.cur_layer = tkinter.StringVar()
+        self.last_layer = ""
+        self.cur_variant = tkinter.StringVar()
+        self.last_variant = ""
 
         # Divide the window into two panes, which stretch according to the divider's size
         # pane_divider and its frames don't use normal grid layout, so these are setup
@@ -324,8 +335,80 @@ class App(object):
         """
         # Make all controls expand horizontally with the window
         self.pane_1.grid_columnconfigure(0, weight=1)
+        # Rows are configured in each function
 
-        self.create_pane_1_description(0)
+        self.create_pane_1_view(0)
+        self.create_pane_1_description(1)
+
+    def create_pane_1_view(self, row):
+        """
+            Create the view controls on the right side of the window
+        """
+        # The view controls do not expand vertically with the window
+        self.pane_1.grid_rowconfigure(row, weight=0)
+
+        # View area
+        self._add_container_control(
+            "settings_frame",
+            tkinter.ttk.LabelFrame(
+                self.pane_1,
+                text="Settings View",
+                padding=PADDING
+                ),
+            row=row,
+            num_cols=2,
+            num_rows=2
+            )
+        # Do not resize label row
+        self.settings_frame.grid_rowconfigure(0, weight=0)
+
+        # Layer controls
+        self._add_leaf_control(
+            "settings_layer_lbl",
+            tkinter.ttk.Label(self.settings_frame, text="Layer"),
+            row=0,
+            col=0
+            )
+        self._add_leaf_control(
+            "settings_layer_cmb",
+            tkinter.ttk.Combobox(
+                self.settings_frame,
+                textvariable=self.cur_layer,
+                height=1,
+                ),
+            row=1,
+            col=0
+            )
+        self.settings_layer_cmb.state(["readonly"])
+
+        # Bind write handler to this object
+        def cur_layer_cb(*args):
+            """Binding method to call the handler"""
+            self.on_cur_layer_changed(self.cur_layer.get())
+
+        self.cur_layer.trace("w", cur_layer_cb)
+
+        # Variant controls
+        self._add_leaf_control(
+            "settings_variant_lbl",
+            tkinter.ttk.Label(self.settings_frame, text="Variant"),
+            row=0,
+            col=1
+            )
+        self._add_leaf_control(
+            "settings_variant_cmb",
+            tkinter.ttk.Combobox(self.settings_frame, textvariable=self.cur_variant, height=1),
+            row=1,
+            col=1
+            )
+        self.settings_variant_cmb.state(["readonly"])
+
+        # Bind write handler to this object
+        def cur_variant_cb(*args):
+            """Binding method to call the handler"""
+            self.on_cur_variant_changed(self.cur_variant.get())
+
+        self.cur_variant.trace("w", cur_variant_cb)
 
     def create_pane_1_description(self, row):
         """
@@ -340,7 +423,8 @@ class App(object):
                 self.pane_1,
                 text="Description",
                 padding=PADDING
-                )
+                ),
+            row=row
             )
         self._add_leaf_control(
             "desc_txt",
@@ -363,6 +447,52 @@ class App(object):
             self.set_description(value)
         else:
             self.set_description("")
+
+    def on_cur_layer_changed(self, value):
+        """Handle changes to the currently selected layer"""
+        if self.project is None:
+            return
+
+        if value == "":
+            return
+
+        v_list = value.split("=")
+        v_len = len(v_list)
+        if v_len in [1, 2]:
+            # Change the <layer>=<variant> form to just <layer>
+            layer = v_list[0]
+        else:
+            print("Error: Invalid layer '{}'".format(value))
+            return
+
+        layer = v_list[0]
+        self.cur_layer.set(v_list[0])
+
+        if self.last_layer == layer:
+            return
+
+        self.last_layer = layer
+        variant_names = self.project.get_variant_names(layer)
+        self.settings_variant_cmb.configure(values=variant_names)
+        self.cur_variant.set(self.settings_view_tbl[layer])
+
+    def on_cur_variant_changed(self, variant):
+        """Handle changes to the currently selected variant"""
+        if self.project is None:
+            return
+
+        if self.last_variant == variant:
+            return
+
+        # Update settings table
+        self.settings_view_tbl[self.cur_layer.get()] = variant
+
+        # Rebuild layer list options to reflect change
+        layer_names = self.project.get_layer_names()
+        value_list = []
+        for layer in layer_names:
+            value_list.append("{}={}".format(layer, self.settings_view_tbl[layer]))
+        self.settings_layer_cmb.configure(values=value_list)
 
     def on_menu_about(self, event=None):
         """Show the about dialog"""
@@ -425,6 +555,14 @@ class App(object):
         if top_items:
             self.cfg_tree.delete(top_items)
 
+        # Clear combo boxes
+        self.settings_layer_cmb.configure(values=[])
+        self.last_layer = ""
+        self.cur_layer.set(self.last_layer)
+        self.settings_variant_cmb.configure(values=[])
+        self.last_variant = ""
+        self.cur_variant.set(self.last_variant)
+
         # Clear other text fields
         self.set_description("")
 
@@ -479,3 +617,18 @@ class App(object):
             child_sorter=gui_child_sorter,
             param_sorter=gui_param_sorter
             )
+
+        # Set up layer/variant boxes
+        self.settings_view_tbl.clear()
+        layer_names = project.get_layer_names()
+        if layer_names:
+            for layer in layer_names:
+                variant_names = project.get_variant_names(layer)
+                self.settings_view_tbl[layer] = (variant_names[0] if variant_names else "")
+            value_list = []
+            for layer in layer_names:
+                value_list.append("{}={}".format(layer, self.settings_view_tbl[layer]))
+
+            self.settings_layer_cmb.configure(values=value_list)
+            self.cur_layer.set(layer_names[0])
+            # Variant will propagate via layer change
