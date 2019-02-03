@@ -69,6 +69,40 @@ class TestSettings(unittest.TestCase):
             debug_mode = True
             )
 
+    def test_access_values(self):
+        self.create_config_set(Util.Container(
+            a="1",
+            b="2",
+            c="3"
+            ))
+
+        # Test presence and read value accessors
+        self.assertTrue(self.config.has_value("a"))
+        self.assertEqual(self.config.get_value("a"), "1")
+        self.assertTrue(self.config.has_value("b"))
+        self.assertEqual(self.config.get_value("b"), "2")
+        self.assertTrue(self.config.has_value("c"))
+        self.assertEqual(self.config.get_value("c"), "3")
+        self.assertFalse(self.config.has_value("d"))
+
+        # Test undefining an existing value
+        self.config.undefine("b")
+        self.assertFalse(self.config.has_value("b"))
+
+        # Test undefining a nonexistent value
+        self.config.undefine("d")
+        self.assertFalse(self.config.has_value("d"))
+
+        # Test setting an existing value
+        self.config.set_value("a", "0")
+        self.assertTrue(self.config.has_value("a"))
+        self.assertEqual(self.config.get_value("a"), "0")
+
+        # Test setting a nonexistent value
+        self.config.set_value("d", "4")
+        self.assertTrue(self.config.has_value("d"))
+        self.assertEqual(self.config.get_value("d"), "4")
+
     def test_bool(self):
         self.create_config_set()
         self.assertTrue(self.config.evaluate("TRUE"))

@@ -605,6 +605,14 @@ class Settings(Log.Debuggable):
         else:
             Log.E("Expression of type '{}' is not convertible to bool".format(tok.TOKEN_TYPE))
 
+    def set_value(self, name, value):
+        """Set/overwrite a value"""
+        self.configs[name] = value
+
+    def undefine(self, name):
+        """Undefine a value"""
+        self.configs.pop(name, None)
+
     def write_sorted(self, fileobj):
         """Write the configs to fileobj, sorted by key"""
         for v in sorted(self.configs.keys()):
