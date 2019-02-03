@@ -65,6 +65,13 @@ CFG_TAG = Util.create_enum(
     "PARAM"
     )
 
+BOOL_VALUE_TRUE = "TRUE"
+BOOL_VALUE_FALSE = "FALSE"
+BOOL_VALUE_UNDEFINED = "UNDEFINED"
+
+# Define values that appear in the combo box for BOOL types, in order of appearance
+BOOL_VALUES = [BOOL_VALUE_UNDEFINED, BOOL_VALUE_FALSE, BOOL_VALUE_TRUE]
+
 def gui_child_sorter(children):
     """Sorter (PEP 265) for children to be shown in the config tree"""
     return sorted(children, key=DefTree.DefForest.ChildNameGetter())
@@ -198,12 +205,17 @@ class App(object):
         self.settings_variant_lbl = None
         self.src_frame = None
         self.src_txt = None
+        self.value_cmb = None
+        self.value_frame = None
+        self.value_stub = None
 
         # Set up control variables
         self.cur_layer = tkinter.StringVar()
         self.last_layer = ""
         self.cur_variant = tkinter.StringVar()
         self.last_variant = ""
+        self.value_cmb_text = tkinter.StringVar()
+        self.value_change_enable = True
 
         # Divide the window into two panes, which stretch according to the divider's size
         # pane_divider and its frames don't use normal grid layout, so these are setup
@@ -343,7 +355,8 @@ class App(object):
 
         self.create_pane_1_view(0)
         self.create_pane_1_description(1)
-        self.create_pane_1_source(2)
+        self.create_pane_1_value(2)
+        self.create_pane_1_source(3)
 
     def create_pane_1_view(self, row):
         """
@@ -472,21 +485,58 @@ class App(object):
             )
         self.set_source("")
 
+    def create_pane_1_value(self, row):
+        """
+            Create the source box on the right side of the window
+        """
+        # Do not resize value row
+        self.pane_1.grid_rowconfigure(row, weight=0)
+
+        self._add_container_control(
+            "value_frame",
+            tkinter.ttk.LabelFrame(
+                self.pane_1,
+                text="Value",
+                padding=PADDING
+                ),
+            row=row
+            )
+
+        # The combo box control is not initially shown
+        self.value_cmb = tkinter.ttk.Combobox(
+            self.value_frame,
+            textvariable=self.value_cmb_text,
+            height=1
+            )
+
+        # Bind write handler to this object
+        def value_cmb_text_cb(*args):
+            """Binding method to call the handler"""
+            self.on_value_changed(self.value_cmb_text.get())
+
+        self.value_cmb_text.trace("w", value_cmb_text_cb)
+
+        # Create a label to act as a layout placeholder
+        self._add_leaf_control(
+            "value_stub",
+            tkinter.ttk.Label(self.value_frame)
+            )
+
     def on_cfg_tree_click(self, value, tag):
         """Handle item clicks"""
         if tag == CFG_TAG.PARAM:
             item = self.param_tbl[value]
             self.set_description(item.param.get_description())
-            self.update_source(item)
             self.cur_tree_item = item
+            self._update_param(item)
         elif tag == CFG_TAG.MENU:
             self.set_description(value)
-            self.set_source("")
             self.cur_tree_item = None
+            self._update_param(None)
         else:
             self.set_description("")
-            self.set_source("")
             self.cur_tree_item = None
+            self._update_param(None)
 
     def on_cur_layer_changed(self, value):
         """Handle changes to the currently selected layer"""
@@ -535,7 +585,7 @@ class App(object):
         self.settings_layer_cmb.configure(values=value_list)
 
         if self.cur_tree_item:
-            self.update_source(self.cur_tree_item)
+            self._update_param(self.cur_tree_item)
 
     def on_menu_about(self, event=None):
         """Show the about dialog"""
@@ -563,6 +613,29 @@ class App(object):
         """Open a configuration file"""
         #pylint: disable=unused-argument
         print("open")
+
+    def on_value_changed(self, text):
+        """Handler for the user changing the current config's value"""
+        if not self.value_change_enable:
+            return
+
+        view_settings = self._get_view_settings()
+        param = self.cur_tree_item.param
+        pid = param.get_identifier()
+        ptype = param.get_type()
+        if param.get_type() == DefTree.PARAM_TYPE.BOOL:
+            if text == BOOL_VALUE_UNDEFINED:
+                view_settings.undefine(pid)
+            elif text in BOOL_VALUES:
+                view_settings.set_value(pid, text)
+            else:
+                print("Error: Invalid BOOL value {} for {}".format(text, pid))
+                return
+        else:
+            print("Error: Unhandled type {} for {}".format(ptype, pid))
+            return
+
+        self._update_param(self.cur_tree_item)
 
     def run(self):
         """Run the application, and return success"""
@@ -615,6 +688,23 @@ class App(object):
 
         # Clear other text fields
         self.set_description("")
+
+    def _get_view_settings(self):
+        """Get the Settings associated with the current view"""
+        view_cache = self.settings_cache[self.cur_layer.get()][self.cur_variant.get()]
+        return view_cache.config.get_settings()
+
+    def _hide_value_controls(self, empty):
+        """Hide all the value controls, optionally leaving it empty"""
+        self.value_cmb.grid_remove()
+
+        if empty:
+            # If the frame will be left empty, reattach the stub
+            self.value_stub.grid(row=0, column=0, sticky=STICKY_FILL)
+        else:
+            # If the frame will not be left empty, remove the stub to make
+            # room for the new control
+            self.value_stub.grid_remove()
 
     def _open_project(self):
         try:
@@ -696,8 +786,17 @@ class App(object):
             self.cur_layer.set(layer_names[0])
             # Variant will propagate via layer change
 
-    def update_source(self, item):
+    def _update_param(self, item):
+        """Update controls related to the parameter selected"""
+        self._update_source(item)
+        self._update_value(item)
+
+    def _update_source(self, item):
         """Update the source box for the given item"""
+        if item is None:
+            self.set_source("")
+            return
+
         pid = item.param.get_identifier()
         out = []
         out.append(item.def_file)
@@ -717,8 +816,42 @@ class App(object):
             except KeyError:
                 pass
 
-        for e in enumerate(values):
-            prefix = "*" if (e[0] == effective_setting) else " "
-            out.append(prefix + e[1])
+        if values:
+            for e in enumerate(values):
+                prefix = "*" if (e[0] == effective_setting) else " "
+                out.append(prefix + e[1])
+        else:
+            out.append("<<UNDEFINED>>")
 
         self.set_source(os.linesep.join(out))
+
+    def _update_value(self, item):
+        """Update the value box for the given item"""
+        if item is None:
+            self._hide_value_controls(True)
+            return
+
+        pid = item.param.get_identifier()
+        view_settings = self._get_view_settings()
+
+        # Select and configure the control based on the parameter type
+        ptype = item.param.get_type()
+        if ptype == DefTree.PARAM_TYPE.BOOL:
+            control_to_use = self.value_cmb
+            self.value_cmb.configure(values=BOOL_VALUES)
+            self.value_cmb.state(["readonly"])
+            # Catching KeyError here to distinguish value being present with "None" value
+            try:
+                value = view_settings.get_value(pid)
+            except KeyError:
+                value = BOOL_VALUE_UNDEFINED
+            self.value_change_enable = False
+            self.value_cmb_text.set(value)
+            self.value_change_enable = True
+        else:
+            print("Error: Unhandled type {} for {}".format(ptype, pid))
+            self._hide_value_controls(True)
+            return
+
+        self._hide_value_controls(False)
+        control_to_use.grid(row=0, column=0, sticky=STICKY_FILL)
