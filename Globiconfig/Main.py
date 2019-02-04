@@ -598,7 +598,7 @@ class App(object):
         msg = "\n".join([
             "Globifest Configuration Utility",
             "",
-            "Copyright 2018 by Daniel Kristensen, Garmin Ltd, or its Subsidiaries.",
+            "Copyright 2018-2019 by Daniel Kristensen, Garmin Ltd, or its Subsidiaries.",
             "",
             "Licensed under the BSD 3-Clause license; see LICENSE.md for details."
             ])
