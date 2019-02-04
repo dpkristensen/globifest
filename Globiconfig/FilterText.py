@@ -1,8 +1,8 @@
 #/usr/bin/env python
 """
-    globifest/globiconfig/__init__.py - globifest Configuration Package
+    globiconfig/FilterText.py - globifest Config FilterText Control
 
-    Copyright 2018-2019, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
+    Copyright 2019, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -31,12 +31,28 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-__author__ = "Daniel Kristensen"
-__license__ = "BSD"
-__copyright__ = "Copyright 2018 Daniel Kristensen, Garmin Ltd. or its subsidiaries."
+import tkinter
 
-__all__ = [
-    "CheckBoxText",
-    "FilterText",
-    "Main"
-    ]
+def TextFilter(_event=None):
+    """Filter function for text input"""
+    return None
+
+class Text(tkinter.Entry):
+    """Filtering text control"""
+
+    def __init__(self, master, **kwargs):
+        tkinter.Entry.__init__(self, master=master, **kwargs)
+        self.filter_fn = TextFilter
+        self.bind("<KeyPress>", self.filter_fn)
+
+    def set_filter(self, filter_fn):
+        """Set the function which will do the filtering for this control"""
+
+        # pylint: disable=W0143
+        if self.filter_fn == filter_fn:
+            return
+
+        def _filter_cb(event=None):
+            return filter_fn(event)
+
+        self.bind("<KeyPress>", _filter_cb)

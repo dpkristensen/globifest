@@ -2,7 +2,7 @@
 """
     globiconfig/Main.py - globifest Config Main Application
 
-    Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
+    Copyright 2018-2019, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ import tkinter
 import tkinter.ttk
 import tkinter.messagebox
 
+from Globiconfig import CheckBoxText, FilterText
 from GlobifestLib import Builder, DefTree, Log, ManifestParser, Util
 
 ACCEL = Util.create_enum(
@@ -208,6 +209,7 @@ class App(object):
         self.value_cmb = None
         self.value_frame = None
         self.value_stub = None
+        self.value_txt = None
 
         # Set up control variables
         self.cur_layer = tkinter.StringVar()
@@ -516,6 +518,9 @@ class App(object):
 
         self.value_cmb_text.trace("w", value_cmb_text_cb)
 
+        # The text box control is not initially shown
+        self.value_txt = CheckBoxText.Control(self.value_frame, self.on_value_changed)
+
         # Create a label to act as a layout placeholder
         self._add_leaf_control(
             "value_stub",
@@ -631,6 +636,14 @@ class App(object):
             else:
                 print("Error: Invalid BOOL value {} for {}".format(text, pid))
                 return
+        elif ptype == DefTree.PARAM_TYPE.STRING:
+            if not isinstance(text, tuple):
+                print("Error: Invalid STRING value {} for {}".format(text, pid))
+                return
+            if text[0]:
+                view_settings.set_value(pid, "\"{}\"".format(text[1]))
+            else:
+                view_settings.undefine(pid)
         else:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             return
@@ -697,6 +710,7 @@ class App(object):
     def _hide_value_controls(self, empty):
         """Hide all the value controls, optionally leaving it empty"""
         self.value_cmb.grid_remove()
+        self.value_txt.grid_remove()
 
         if empty:
             # If the frame will be left empty, reattach the stub
@@ -847,6 +861,20 @@ class App(object):
                 value = BOOL_VALUE_UNDEFINED
             self.value_change_enable = False
             self.value_cmb_text.set(value)
+            self.value_change_enable = True
+        elif ptype == DefTree.PARAM_TYPE.STRING:
+            control_to_use = self.value_txt
+            self.value_txt.set_text_filter(FilterText.TextFilter)
+            # Catching KeyError here to distinguish value being present with "None" value
+            try:
+                value = view_settings.get_value(pid)[1:-1] # Strip off the quotes for display
+                enabled = True
+            except KeyError:
+                # Keep showing the text, just in case the user changes their mind
+                value = self.value_txt.get_text()
+                enabled = False
+            self.value_change_enable = False
+            self.value_txt.set_value(enabled, value)
             self.value_change_enable = True
         else:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
