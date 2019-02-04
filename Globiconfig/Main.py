@@ -186,6 +186,10 @@ class App(object):
         self.settings_view_tbl = Util.Container()
         self.settings_cache = Util.Container()
         self.cur_tree_item = None
+        self._modified = False
+
+        # Menus that need to be accessed later
+        self.file_menu = None
 
         # Set up tkinter app root; this is not a super-class so the API is private
         self.app_root = tkinter.Tk()
@@ -265,15 +269,22 @@ class App(object):
 
         text = cmd.t
         a_pos = text.find("&")
+        menustate = cmd.get("s", "normal")
         if a_pos == -1:
-            top_menu.add_command(label=text, command=cmd.f)
+            top_menu.add_command(label=text, command=cmd.f, state=menustate)
         else:
             a_key = text[a_pos+1]
             text = text[:a_pos] + text[a_pos+1:]
             a_type = cmd.get("a", ACCEL.CONTROL)
             a_text = "{}+{}".format(ACCELERATOR[a_type].text, a_key.upper())
             binding = "<{}-{}>".format(ACCELERATOR[a_type].bind, a_key.lower())
-            top_menu.add_command(label=text, underline=a_pos, command=cmd.f, accelerator=a_text)
+            top_menu.add_command(
+                label=text,
+                underline=a_pos,
+                command=cmd.f,
+                accelerator=a_text,
+                state=menustate
+                )
             self.app_root.bind_all(binding, cmd.f)
 
     def add_menu_items(self, top_menu, cmd_list):
@@ -287,14 +298,15 @@ class App(object):
 
         top_menu = tkinter.Menu(self.app_root)
 
-        file_menu = tkinter.Menu(top_menu, tearoff=0)
-        self.add_menu_items(file_menu, [
+        self.file_menu = tkinter.Menu(top_menu, tearoff=0)
+        self.add_menu_items(self.file_menu, [
             M(t="&Open...", f=self.on_menu_file_open),
-            M(t="&Close", f=self.on_menu_file_close),
+            M(t="&Save", f=self.on_menu_file_save, s="disabled"),
+            M(t="&Close", f=self.on_menu_file_close, s="disabled"),
             "-",
             M(t="E&xit", f=self.on_menu_file_exit)
             ])
-        top_menu.add_cascade(label="File", underline=0, menu=file_menu)
+        top_menu.add_cascade(label="File", underline=0, menu=self.file_menu)
 
         self.add_menu_item(top_menu, M(t="About!", f=self.on_menu_about))
 
@@ -604,20 +616,34 @@ class App(object):
             ])
         tkinter.messagebox.showinfo("About", msg)
 
-    def on_menu_file_exit(self, event=None):
+    def on_menu_file_exit(self, _event=None):
         """Exit the program"""
-        #pylint: disable=unused-argument
+        if not self._ask_save_modified_file():
+            # Cancelled
+            return
+
         self.app_root.quit()
 
-    def on_menu_file_close(self, event=None):
+    def on_menu_file_close(self, _event=None):
         """Close the configuration"""
-        #pylint: disable=unused-argument
-        print("close")
+        if not self._ask_save_modified_file():
+            # Cancelled
+            return
 
-    def on_menu_file_open(self, event=None):
+        self._close_project()
+
+    def on_menu_file_open(self, _event=None):
         """Open a configuration file"""
-        #pylint: disable=unused-argument
+        if not self._ask_save_modified_file():
+            # Cancelled
+            return
+
         print("open")
+
+    def on_menu_file_save(self, _event=None):
+        """Save the configuration"""
+        if self._modified:
+            self._save_project()
 
     def on_value_changed(self, text):
         """Handler for the user changing the current config's value"""
@@ -656,6 +682,8 @@ class App(object):
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             return
 
+        self._set_modified(True)
+
         self._update_param(self.cur_tree_item)
 
     def run(self):
@@ -693,11 +721,32 @@ class App(object):
         setattr(self, name, control)
         control.grid(row=row, column=col, sticky=STICKY_FILL)
 
+    def _ask_save_modified_file(self):
+        """
+            If the file is modified, ask the user to save
+
+            Returns True if the menu action should continue, or False otherwise
+        """
+        if not self._modified:
+            return True
+
+        msg = "Save modified configuration?"
+        result = tkinter.messagebox.askyesnocancel(self.APP_TITLE, msg)
+        if result is None:
+            # Cancelled
+            return False
+
+        if result:
+            self._save_project()
+
+        return True
+
     def _clear_gui(self):
         # Delete all items in the config tree
         top_items = self.cfg_tree.get_children()
         if top_items:
-            self.cfg_tree.delete(top_items)
+            for item in top_items:
+                self.cfg_tree.delete(item)
 
         # Clear combo boxes
         self.settings_layer_cmb.configure(values=[])
@@ -709,6 +758,18 @@ class App(object):
 
         # Clear other text fields
         self.set_description("")
+        self.set_source("")
+        self._hide_value_controls(True)
+
+    def _close_project(self):
+        """Clear out all data associated with the current project"""
+        self._clear_gui()
+        self.project = None
+        self.settings_cache.clear()
+        self.app_root.title(self.APP_TITLE)
+        self.project_file = ""
+        self._set_modified(False)
+        self.file_menu.entryconfigure("Close", state="disabled")
 
     def _get_view_settings(self):
         """Get the Settings associated with the current view"""
@@ -807,6 +868,24 @@ class App(object):
             self.settings_layer_cmb.configure(values=value_list)
             self.cur_layer.set(layer_names[0])
             # Variant will propagate via layer change
+
+        self.file_menu.entryconfig("Close", state="normal")
+
+    def _save_project(self):
+        """Save project settings"""
+        print("save")
+        self._set_modified(False)
+
+    def _set_modified(self, new_value):
+        """Change the modified flag"""
+        if self._modified == new_value:
+            return
+
+        self._modified = new_value
+        self.file_menu.entryconfig(
+            "Save",
+            state=("normal" if new_value else "disabled")
+            )
 
     def _update_param(self, item):
         """Update controls related to the parameter selected"""
