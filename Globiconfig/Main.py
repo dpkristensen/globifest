@@ -644,6 +644,14 @@ class App(object):
                 view_settings.set_value(pid, "\"{}\"".format(text[1]))
             else:
                 view_settings.undefine(pid)
+        elif ptype in [DefTree.PARAM_TYPE.INT, DefTree.PARAM_TYPE.FLOAT]:
+            if not isinstance(text, tuple):
+                print("Error: Invalid numeric({}) value {} for {}".format(ptype, text, pid))
+                return
+            if text[0]:
+                view_settings.set_value(pid, text[1])
+            else:
+                view_settings.undefine(pid)
         else:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             return
@@ -868,6 +876,27 @@ class App(object):
             # Catching KeyError here to distinguish value being present with "None" value
             try:
                 value = view_settings.get_value(pid)[1:-1] # Strip off the quotes for display
+                enabled = True
+            except KeyError:
+                # Keep showing the text, just in case the user changes their mind
+                value = self.value_txt.get_text()
+                enabled = False
+            self.value_change_enable = False
+            self.value_txt.set_value(enabled, value)
+            self.value_change_enable = True
+        elif ptype in [DefTree.PARAM_TYPE.INT, DefTree.PARAM_TYPE.FLOAT]:
+            control_to_use = self.value_txt
+            if ptype == DefTree.PARAM_TYPE.INT:
+                filter_cb = FilterText.NumericFilter(signed=True)
+            elif ptype == DefTree.PARAM_TYPE.FLOAT:
+                filter_cb = FilterText.NumericFilter(signed=True, fractional=True)
+            else:
+                print("Error: Unknown numeric type {} for {}".format(ptype, pid))
+                return
+            self.value_txt.set_text_filter(filter_cb)
+            # Catching KeyError here to distinguish value being present with "None" value
+            try:
+                value = view_settings.get_value(pid)
                 enabled = True
             except KeyError:
                 # Keep showing the text, just in case the user changes their mind
