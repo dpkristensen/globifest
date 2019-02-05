@@ -33,8 +33,9 @@
 
 import os
 import tkinter
-import tkinter.ttk
+import tkinter.filedialog
 import tkinter.messagebox
+import tkinter.ttk
 
 from Globiconfig import CheckBoxText, FilterText
 from GlobifestLib import Builder, DefTree, Log, ManifestParser, Util
@@ -187,6 +188,7 @@ class App(object):
         self.settings_cache = Util.Container()
         self.cur_tree_item = None
         self._modified = False
+        self._opendir = "."
 
         # Menus that need to be accessed later
         self.file_menu = None
@@ -638,7 +640,22 @@ class App(object):
             # Cancelled
             return
 
-        print("open")
+        filename = tkinter.filedialog.askopenfilename(
+            initialdir=self._opendir,
+            filetypes=[
+                ("Globifest projects", ("*.gproj", "*.pfg")),
+                ("All files", "*.*")
+                ]
+            )
+        if not filename:
+            # Cancelled
+            return
+
+        if self.project:
+            self._close_project()
+
+        self.project_file = filename
+        self._open_project()
 
     def on_menu_file_save(self, _event=None):
         """Save the configuration"""
@@ -797,6 +814,7 @@ class App(object):
             return
 
         def_trees = list()
+        self._opendir = os.path.dirname(self.project_file)
 
         for pkg in project.get_packages():
             pkg_file = Builder.get_pkg_file(project, pkg, prj_dir, out_dir)
