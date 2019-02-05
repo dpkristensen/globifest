@@ -899,6 +899,13 @@ class App(object):
 
         self.file_menu.entryconfig("Close", state="normal")
 
+        if not self.settings_cache:
+            tkinter.messagebox.showinfo(
+                self.APP_TITLE,
+                "{} defines no settings!".format(self.project_file)
+                )
+            self._close_project()
+
     def _save_project(self):
         """Save project settings"""
         for layer, layer_cache in self.settings_cache:
