@@ -421,7 +421,6 @@ class Settings(Log.Debuggable):
         self.extend(configs)
 
         self.ident_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
-        self.string_re = re.compile(r"^([a-zA-Z_0-9]+)(.*)")
         self.int_re = re.compile(r"^([0-9\-]+)(.*)")
         self.op_re = re.compile(r"^(!=|==|=|!|<=|<|>=|>|&&|\|\|)(.*)")
         self.whitespace_re = re.compile(r"^\s+(.*)")
