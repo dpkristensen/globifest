@@ -71,12 +71,12 @@ def build_definition(in_fname):
     reader.read_file_by_name(in_fname)
     return def_tree
 
-def build_manifest(in_fname, settings, pkg_root):
+def build_manifest(in_fname, settings, pkg_root, validate_files=True):
     """
       Build a manifest with the given settings
     """
     manifest = Manifest.new(in_fname, pkg_root)
-    parser = ManifestParser.new(manifest, settings)
+    parser = ManifestParser.new(manifest, settings, validate_files=validate_files)
     reader = LineReader.new(parser)
 
     reader.read_file_by_name(in_fname)

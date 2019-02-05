@@ -832,7 +832,17 @@ class App(object):
                     )
                 return
 
-            manifest = Builder.build_manifest(pkg_file, ManifestParser.ConfigsOnly(), pkg_root)
+            try:
+                manifest = Builder.build_manifest(
+                    pkg_file,
+                    ManifestParser.ConfigsOnly(),
+                    pkg_root,
+                    validate_files=False
+                    )
+            except Log.GlobifestException as e:
+                tkinter.messagebox.showerror(self.APP_TITLE, str(e))
+                return
+
             pkg_dir = os.path.dirname(pkg_file)
             for cfg in manifest.get_configs():
                 cfg.definition = Util.get_abs_path(cfg.definition, pkg_dir)
