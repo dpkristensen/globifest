@@ -737,7 +737,7 @@ class App(object):
             return False
 
         if result:
-            self._save_project()
+            return self._save_project()
 
         return True
 
@@ -873,8 +873,24 @@ class App(object):
 
     def _save_project(self):
         """Save project settings"""
-        print("save")
+        for layer, layer_cache in self.settings_cache:
+            for variant, variant_cache in layer_cache:
+                try:
+                    with open(variant_cache.target.filename, "wt") as cfg_file:
+                        variant_cache.config.get_settings().write_sorted(cfg_file)
+                except EnvironmentError as e:
+                    tkinter.messagebox.showerror(
+                        self.APP_TITLE,
+                        "Error writing {}/{} ({}): {}".format(
+                            layer,
+                            variant,
+                            variant_cache.target.filename,
+                            str(e)
+                            )
+                        )
+                    return False
         self._set_modified(False)
+        return True
 
     def _set_modified(self, new_value):
         """Change the modified flag"""
