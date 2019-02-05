@@ -61,17 +61,7 @@ Leading whitespace is ignored on all lines.  This allows authors to use whatever
 
 See [guidelines.md](guidelines.md) for recommended guidelines.
 
-### 1.5 Global Parameters (NOT YET IMPLEMENTED)
-
-Lines beginning with "@" are used to specify global parsing parameters:
-
-    @version <number>
-
-The version is intended for backwards compatibility of breaking changes, if needed in the future.  If ommitted, the version number is assumed to be 1.
-
-To support adding more parameters later, unknown parametes are ignored when the version is greater than the parser's version.
-
-### 1.6 Requirements, Constraints, and Features
+### 1.5 Requirements, Constraints, and Features
 
 For each element, tags may be listed in bold at the top of the section:
 
@@ -83,7 +73,7 @@ For each element, tags may be listed in bold at the top of the section:
 
 Unless otherwise specified, all elements are unique within the block (cannot be defined twice).
 
-### 1.7 Identifier Naming
+### 1.6 Identifier Naming
 
 An identifier is a symbolic name for the element.  It must only include one or more characters of the set {a-z,A-Z,0-9,_}, no whitespace is allowed
 
