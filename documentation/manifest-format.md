@@ -175,7 +175,7 @@ The following rules apply:
 * :default is considered a matched value only if none of the previous values have matched.
 * After a value is matched, the entries that follow in that block are used; subsequent values are not evaluated and subsequent entries are ignored until :end.
 
-## 5 Globbing (NOT YET IMPLEMENTED)
+## 5 Globbing
 
 To add files via Unix-style wildcard matching, use the "g" or "glob" directives:
 
@@ -202,7 +202,7 @@ The "include" directive will import another file as if the directive was literal
 
 This can appear multiple times.
 
-## 7 Configuration Definitions (NOT YET IMPLEMENTED)
+## 7 Configuration Definitions
 
 **Parent**={Top} **Parameters**
 
