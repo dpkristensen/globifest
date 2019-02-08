@@ -1,4 +1,4 @@
-;   Hello World Sample Package Definitions
+;   Hello World Sample Backend Definitions
 ;
 ;   Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
 ;   All rights reserved.
@@ -28,13 +28,13 @@
 ;   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ;   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-:menu HelloWorld
-    description Configuration settings for the Hello World sample module
-    :config HW_MSG_TITLE
-        type STRING
-        title Title
-        description Appears in the message output
-    :end
+; This file exists to demonstrate/test how the :include directive works.
 
-    :include source/backend/backend.gdi
+:menu Backend
+    :config HW_BACKEND_TYPE
+        ; TODO: Define ENUM type and convert
+        type INT
+        title Backend Type
+        description Backend to use (0=libsdl, 1=stdout, 2=Windows).
+    :end
 :end

@@ -180,3 +180,17 @@ In the above example, the menu structure will produce:
 **Parent**=menu
 
 This is a longer, more verbose description of the settings within this folder when more detail than the title is needed to explain.
+
+### 2.4 Including Files
+
+**Parent**={Any} **Multiple**
+
+The "include" directive will import another file as if the directive was literally replaced with the contents of the file, using the following form:
+
+    :include <filename>
+
+File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
+
+It is recommended that included files that contain definition content use the extension ".gdi" to indicate it contains content for inclusion into a definition file (as opposed to other types of Globifest content). 
+
+In conjunction with the menu block this can make for easy nesting of parameters according to folder structure, as well as keep configuration definitions close to the code which uses them.
