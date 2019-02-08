@@ -35,12 +35,14 @@
 """
 
 import glob
+import os
 import pathlib
 import re
 
 from GlobifestLib import \
     BoundedStatefulParser, \
     Generators, \
+    LineReader, \
     Log, \
     Matcher, \
     Settings, \
@@ -364,6 +366,8 @@ class ManifestParser(Log.Debuggable):
             self.condition_else_re = re.compile("else$", regex_flags)
         with Log.CaptureStdout(self, "BLOCK_END_RE:"):
             self.block_end_re = re.compile("end$", regex_flags)
+        with Log.CaptureStdout(self, "INCLUDE_RE:"):
+            self.include_re = re.compile("include[ ]+(.*)", regex_flags)
         with Log.CaptureStdout(self, "LABEL_RE:"):
             self.label_re = re.compile("([a-z_]+)", regex_flags)
 
@@ -531,6 +535,29 @@ class ManifestParser(Log.Debuggable):
         paren_parser.link_debug_log(self)
         return paren_parser
 
+    def _include_file(self, filename):
+        """
+            Include the contents of another file as if it was directly placed in this file
+        """
+        abs_filename = Util.get_abs_path(filename, self.pkg_root)
+
+        if not self.validate_files:
+            # For testing, just add the include file as a source
+            self.debug("ADD_AUX: {}".format(abs_filename))
+            self.manifest.add_entry("aux_files", abs_filename)
+            return
+
+        # Save the package root so that files paths can be relative to the included file
+        old_pkg_root = self.pkg_root
+        self.pkg_root = os.path.dirname(abs_filename)
+
+        # Read the file using this object as the parser
+        reader = LineReader.new(self, do_end=False)
+        reader.read_file_by_name(abs_filename)
+
+        # Restore the original package root
+        self.pkg_root = old_pkg_root
+
     def _parse_directive(self, text):
         """
             Parse directive text
@@ -572,6 +599,9 @@ class ManifestParser(Log.Debuggable):
         elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._condition_end()
+        elif m.is_fullmatch(self.include_re):
+            self.debug("INCLUDE: {}".format(m[1]))
+            self._include_file(m[1])
         elif m.is_fullmatch(self.label_re):
             self.debug("LABEL: {}".format(m[1]))
             # Label directive (:x)

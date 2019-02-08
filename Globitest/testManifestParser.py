@@ -432,3 +432,18 @@ class TestManifestParser(unittest.TestCase):
             sources = ["abc_module.c", "abc_list.c", "xyz/xyz_lib.c"]
         )
         self.verify_manifest(expected)
+
+    def test_include_file(self):
+        self.create_parser()
+        self.parse_lines(
+            ":sources",
+            "   ab.c",
+            "   :include 123.gmi",
+            "   de.f"
+            )
+
+        # For testing purposes, the include file is not actually parsed
+        expected = create_empty_manifest_container()
+        expected.aux_files = ["123.gmi"]
+        expected.sources = ["ab.c", "de.f"]
+        self.verify_manifest(expected)

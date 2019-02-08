@@ -190,7 +190,7 @@ To add files via Unix-style wildcard matching, use the "g" or "glob" directives:
 
 See [Python API for glob()](https://docs.python.org/2/library/glob.html) for details about pattern matching.
 
-## 6 Including Sub-Manifests (NOT YET IMPLEMENTED)
+## 6 Including Files
 
 **Parent**={Any} **Multiple**
 
@@ -200,7 +200,9 @@ The "include" directive will import another file as if the directive was literal
 
     :include <filename>
 
-This can appear multiple times.
+File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
+
+It is recommended that included files that contain manifest content use the extension ".gmi" to indicate it contains content for inclusion into a manifest file (as opposed to other types of Globifest content). 
 
 ## 7 Configuration Definitions
 

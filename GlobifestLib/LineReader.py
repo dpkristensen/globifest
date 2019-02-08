@@ -124,9 +124,10 @@ class LineReader:
         Reads lines of data from a file
     """
 
-    def __init__(self, parser):
+    def __init__(self, parser, do_end=True):
         self.parser = parser
         self.err_file_name = ""
+        self.do_end = do_end
 
     def error(self, action, sys_msg):
         """Log an error"""
@@ -150,7 +151,7 @@ class LineReader:
 
         if not reader:
             self.error("read from", reader.get_err_msg())
-        else:
+        elif self.do_end:
             self.parser.parse_end()
 
 new = LineReader
