@@ -1,4 +1,4 @@
-;   Hello World Sample Project
+;   Hello World Sample Project Definition Includes
 ;
 ;   Copyright 2018, Daniel Kristensen, Garmin Ltd, or its subsidiaries.
 ;   All rights reserved.
@@ -28,9 +28,13 @@
 ;   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ;   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-:project HelloWorld
-    :include defs.gpi
+; This file exists to demonstrate/test how the :include directive works.
 
-    :package App/app.gman
-    :package Hw/package.gman
+:layer common
+    variant defaults
+:end
+:layer backend
+    variant libsdl
+    variant stdout
+    variant windows
 :end

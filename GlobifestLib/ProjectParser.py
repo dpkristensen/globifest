@@ -31,10 +31,12 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+import os
 import re
 
 from GlobifestLib import \
     Importer, \
+    LineReader, \
     Log, \
     Matcher, \
     Util
@@ -183,6 +185,7 @@ class ProjectParser(Log.Debuggable):
         # Always has a context
         top_context = Context(project_parser=self)
         self.context_stack = [top_context]
+        self.prj_root = os.path.dirname(project.get_filename())
 
         regex_flags = 0
         if Log.Logger.has_level(Log.LEVEL.EXTREME):
@@ -229,6 +232,9 @@ class ProjectParser(Log.Debuggable):
                 "lcl_package[ \t]+(" + IDENTIFIER_NAME + ")[ \t]+(.+)$",
                 regex_flags
                 )
+
+        with Log.CaptureStdout(self, "INCLUDE_RE:"):
+            self.include_re = re.compile("include[ ]+(.*)", regex_flags)
 
         # Block parameter regex
         with Log.CaptureStdout(self, "BLOCK_PARAM_RE::"):
@@ -339,6 +345,23 @@ class ProjectParser(Log.Debuggable):
                 )
             )
         self.context_stack.append(new_context)
+
+    def _include_file(self, filename):
+        """
+            Include the contents of another file as if it was directly placed in this file
+        """
+        abs_filename = Util.get_abs_path(filename, self.prj_root)
+
+        # Save the project root so that files paths can be relative to the included file
+        old_prj_root = self.prj_root
+        self.prj_root = os.path.dirname(abs_filename)
+
+        # Read the file using this object as the parser
+        reader = LineReader.new(self, do_end=False)
+        reader.read_file_by_name(abs_filename)
+
+        # Restore the original project root
+        self.prj_root = old_prj_root
 
     def _layer_end(self, context):
         """
@@ -475,6 +498,9 @@ class ProjectParser(Log.Debuggable):
         elif m.is_fullmatch(self.block_end_re):
             self.debug("END")
             self._block_end()
+        elif m.is_fullmatch(self.include_re):
+            self.debug("INCLUDE")
+            self._include_file(m[1])
         elif not m.found:
             self.log_error("Bad directive '{}'".format(text))
 

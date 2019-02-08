@@ -109,7 +109,7 @@ A directive is a special identifier following a leading Colon (ASCII 58).  These
 
 For each element, tags may be listed in bold at the top of the section:
 
-* Parent - This element must be a child of one of the following directives listed here; "Top" means it can be a top-level element of the file.
+* Parent - This element must be a child of one of the following directives listed here; "Top" means it must be a top-level element of the file.
 * Mandatory - This element must appear at least once within the block.
 * Multiple - One or more elements may appear in the same block.
 * Parameters - This block has parameter elements, which are documented in a related section.
@@ -367,3 +367,17 @@ Below are functionally equivalent ways to use a FOO module that contains a manif
     ; When built in /_Output directory, the path will be /_Output/FOO/extract/foo/manifest.gman
 
 This form might be easier to use if a dependency provides multiple manifests in a form where usage of a prefix is infeasible.  But the folder name contains a version number, which will be repeated in each ext_package entry.
+
+### 3.7 Including Files
+
+**Parent**={Any} **Multiple**
+
+The "include" directive will import another file as if the directive was literally replaced with the contents of the file, using the following form:
+
+    :include <filename>
+
+File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
+
+It is recommended that included files that contain project content use the extension ".gpi" to indicate it contains content for inclusion into a project file (as opposed to other types of Globifest content). 
+
+For projects that share configuration layering or packages, this can reduce duplicate maintenance.
