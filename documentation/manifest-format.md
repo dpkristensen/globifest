@@ -237,7 +237,8 @@ Supported formats (case-insensitive) include:
 
 * C - Compliant to ISO 9899:1990 (aka C89/C90)
 * Custom - Using a custom formatter (must be after the formatter parameter).
-* Java - Compliant to Java (version TBD - TODO: What's the earliest version that can be supported?)
+* Java - Compliant to "The Java Language Specification" ISBN 0-201-63451-1 (aka Java 1.0).
+	* For Java, the path name will ultimately end up being used to determine the package name.
 
 Examples:
 
@@ -250,8 +251,13 @@ Examples:
         ; These definitions are available in manifest conditional logic as
         ; well as in the files specified.
         definition settings.gdef
+
         generate C my_module/settings.h
-        generate Java my_module/settings.java
+
+		; Package is com.my_company.component
+		; Class name is Settings
+		; The file name will be converted to lowercase per Java convention
+        generate Java com/my_company/component/Settings.java
     :end
 
 ### 7.3 Custom Output Formatters

@@ -31,6 +31,7 @@
 :config
     definition config.gdef
     generate C app/config.h
+    generate java com/globifest/samples/helloworld/app/Settings.java
 :end
 
 :if( HW_BUILD_APP )
