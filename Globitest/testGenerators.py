@@ -39,9 +39,8 @@ class TestGenerators(unittest.TestCase):
 
     def test_c(self):
         generator = Generators.factory(
-            gen_format="C", # Case-insensitive
-            filename="config.h",
-            formatter="ignored"
+            gen_format="c",
+            filename="config.h"
         )
         self.assertIsNotNone(generator)
         self.assertEqual(generator.get_filename(), "config.h")
@@ -50,9 +49,8 @@ class TestGenerators(unittest.TestCase):
 
     def test_java(self):
         generator = Generators.factory(
-            gen_format="jAVa", # Case-insensitive
-            filename="config.java",
-            formatter="irrelevant"
+            gen_format="java",
+            filename="config.java"
         )
         self.assertIsNotNone(generator)
         self.assertEqual(generator.get_filename(), "config.java")
@@ -61,11 +59,11 @@ class TestGenerators(unittest.TestCase):
 
     def test_custom(self):
         generator = Generators.factory(
-            gen_format="CusToM", # Case-insensitive
+            gen_format="_custom",
             filename="config.bin",
             formatter="bin_formatter.py"
         )
         self.assertIsNotNone(generator)
         self.assertEqual(generator.get_filename(), "config.bin")
-        self.assertEqual(generator.FORMAT_TYPE, "custom")
+        self.assertEqual(generator.FORMAT_TYPE, "_custom")
         self.assertEqual(generator.get_formatter(), "bin_formatter.py")

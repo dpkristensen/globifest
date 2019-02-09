@@ -32,6 +32,7 @@
     definition config.gdef
     generate C app/config.h
     generate java com/globifest/samples/helloworld/app/Settings.java
+    generate_s ../generators/gen_json.py app/config.json
 :end
 
 :if( HW_BUILD_APP )

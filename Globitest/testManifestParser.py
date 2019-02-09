@@ -351,8 +351,7 @@ class TestManifestParser(unittest.TestCase):
             ":config",
             "   definition bar.dfg",
             "   generate Java bar.java",
-            "   formatter my_formatter.py",
-            "   generate Custom bar.bin",
+            "   generate_s my_formatter.py bar.bin",
             ":end",
             ":sources",
             "    a.cpp"
@@ -382,7 +381,7 @@ class TestManifestParser(unittest.TestCase):
                         filename="bar.java"
                     ),
                     Util.Container(
-                        format="custom",
+                        format="_custom",
                         filename="bar.bin",
                         formatter="my_formatter.py"
                     )

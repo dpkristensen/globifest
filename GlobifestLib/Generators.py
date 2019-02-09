@@ -33,6 +33,7 @@
 
 import os
 import re
+import runpy
 
 from GlobifestLib import DefTree, LineReader, Log, Util
 
@@ -128,11 +129,20 @@ register_generator(CGenerator)
 class CustomGenerator(GeneratorBase):
     """Generates files using a custom formatter"""
 
-    FORMAT_TYPE = "custom"
+    FORMAT_TYPE = "_custom"
 
     def generate(self, definitions, out_dir):
         """Generate a settings file"""
-        Log.E("Not yet implemented")
+        args = dict(
+            DEFINITIONS=definitions,
+            OUT_DIR=out_dir,
+            OUT_FILE=self.filename,
+            PARAM_TYPE=DefTree.PARAM_TYPE,
+            g_print=lambda msg: Log.I("        {}".format(str(msg))),
+            g_debug=lambda msg: Log.D("        {}".format(str(msg))),
+            g_err=lambda msg: Log.E(msg) # pylint:disable=W0108
+            )
+        runpy.run_path(self.formatter, init_globals=args, run_name="<globifest>")
 
     def get_formatter(self):
         """Returns the formatter used"""
@@ -195,9 +205,9 @@ class JavaGenerator(GeneratorBase):
 
 register_generator(JavaGenerator)
 
-def factory(gen_format, filename, formatter):
+def factory(gen_format, filename, formatter=None):
     """Return a generator for the given format, or None if not registerd"""
-    gen_class = generators.get(gen_format.lower())
+    gen_class = generators.get(gen_format)
     if gen_class:
         return gen_class(filename, formatter)
 

@@ -32,6 +32,7 @@
     definition config.gdef
     generate C hw/config.h
     generate java com/globifest/samples/helloworld/hw/Settings.java
+    generate_s ../generators/gen_json.py hw/config.json
 :end
 
 :sources

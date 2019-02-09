@@ -78,6 +78,10 @@ COND_STATE = Util.create_enum(
     "SATISFIED"
     )
 
+PROHIBITED_GENERATORS = [
+    Generators.CustomGenerator.FORMAT_TYPE
+    ]
+
 class ConfigsOnly(Settings.Settings):
     """
         Class to use when only reading configs
@@ -246,8 +250,7 @@ class ConditionContext(Context):
 
 # Map of unique config element strings to Context.ctx member names in no particular order
 CONFIG_ELEMENTS = Util.Container(
-    # "generate" is not unique, so not present in this list
-    # "formatter" can be overwritten, so not present in this list
+    # "generate" and friends are not unique, so not present in this list
     definition="definition"
     )
 
@@ -301,18 +304,31 @@ class ParameterContext(Context):
         if name == "generate":
             token = value.split(" ", 1)
             if len(token) != 2:
-                self.manifest_parser.log_error("generate requires a format and filename")
+                self.manifest_parser.log_error("Incorrect values for parameter: generate")
+            gen_format = token[0].lower()
+            if gen_format in PROHIBITED_GENERATORS:
+                self.manifest_parser.log_error("Format {} is prohibited".format(token[0]))
             generator = Generators.factory(
-                gen_format=token[0],
-                filename=token[1],
-                formatter=self.ctx.formatter
+                gen_format=gen_format,
+                filename=token[1]
             )
 
             if generator is None:
                 self.manifest_parser.log_error("Invalid format '{}'".format(token[0]))
             self.ctx.generators.append(generator)
-        elif name == "formatter":
-            self.ctx.formatter = value
+        elif name == "generate_s":
+            token = value.split(" ", 1)
+            if len(token) != 2:
+                self.manifest_parser.log_error("Incorrect values for parameter: generate_s")
+            generator = Generators.factory(
+                gen_format="_custom",
+                filename=token[1],
+                formatter=Util.get_abs_path(token[0], self.manifest_parser.pkg_root)
+            )
+
+            if generator is None:
+                self.manifest_parser.log_error("Invalid format '{}'".format(token[0]))
+            self.ctx.generators.append(generator)
         elif self.is_unique_element(CONFIG_ELEMENTS, name):
             # No additional validation required for these elements
             self.ctx[CONFIG_ELEMENTS[name]] = value
@@ -353,7 +369,7 @@ class ManifestParser(Log.Debuggable):
         with Log.CaptureStdout(self, "DIRECTIVE_RE:"):
             self.directive_re = re.compile(":.*", regex_flags)
         with Log.CaptureStdout(self, "PARAMETER_RE:"):
-            self.parameter_re = re.compile("([a-z]+)[ \t]+(.*)$", regex_flags)
+            self.parameter_re = re.compile("([a-z_]+)[ \t]+(.*)$", regex_flags)
 
         # directive regexes (preceding colon and whitespace stripped off), in order of matching
         with Log.CaptureStdout(self, "CONFIG_RE:"):
@@ -520,7 +536,6 @@ class ManifestParser(Log.Debuggable):
             line_info=self.line_info,
             ctx=Util.Container(
                 definition=None,
-                formatter=None,
                 generators=[]
             )
         )
