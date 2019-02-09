@@ -529,10 +529,13 @@ class ManifestParser(Log.Debuggable):
 
     def _config_start(self):
         """Start a config block"""
+        parent = self.context_stack[-1]
+        if parent.level != 0:
+            self.log_error("Config blocks must start at the top level of a manifest")
         config_context = ParameterContext(
             manifest_parser=self,
             ctype=Context.CTYPE.CONFIG,
-            prev_context=self.context_stack[-1],
+            prev_context=parent,
             line_info=self.line_info,
             ctx=Util.Container(
                 definition=None,
