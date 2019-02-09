@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD025 MD026 -->
+
 # Globbing Package Manifest Builder
 
 This tool lets you describe package manifests in a way that is abstract to whatever build and configuration system you use.
@@ -30,10 +32,10 @@ Some build system integration is already planned:
 * CMake
 * Visual Studio?
 
-### Importing as a Python module:
+### Importing as a Python module
 
 Import the "globifest" module in the root directory, or install it to your system library.
 
-### Building deliverables via the command line:
+### Building deliverables via the command line
 
 Run the ./build python script on each manifest to generate output.

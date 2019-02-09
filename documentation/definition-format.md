@@ -191,6 +191,6 @@ The "include" directive will import another file as if the directive was literal
 
 File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
 
-It is recommended that included files that contain definition content use the extension ".gdi" to indicate it contains content for inclusion into a definition file (as opposed to other types of Globifest content). 
+It is recommended that included files that contain definition content use the extension ".gdi" to indicate it contains content for inclusion into a definition file (as opposed to other types of Globifest content).
 
 In conjunction with the menu block this can make for easy nesting of parameters according to folder structure, as well as keep configuration definitions close to the code which uses them.

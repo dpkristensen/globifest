@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD041 -->
+
 BSD 3-Clause License
 
 # Software License

@@ -202,7 +202,7 @@ The "include" directive will import another file as if the directive was literal
 
 File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
 
-It is recommended that included files that contain manifest content use the extension ".gmi" to indicate it contains content for inclusion into a manifest file (as opposed to other types of Globifest content). 
+It is recommended that included files that contain manifest content use the extension ".gmi" to indicate it contains content for inclusion into a manifest file (as opposed to other types of Globifest content).
 
 ## 7 Configuration Definitions
 
@@ -239,7 +239,7 @@ Supported formats (case-insensitive) include:
 
 * C - Compliant to ISO 9899:1990 (aka C89/C90)
 * Java - Compliant to "The Java Language Specification" ISBN 0-201-63451-1 (aka Java 1.0).
-	* For Java, the path name will ultimately end up being used to determine the package name.
+  * For Java, the path name will ultimately end up being used to determine the package name.
 
 Examples:
 
@@ -255,9 +255,9 @@ Examples:
 
         generate C my_module/settings.h
 
-		; Package is com.my_company.component
-		; Class name is Settings
-		; The file name will be converted to lowercase per Java convention
+        ; Package is com.my_company.component
+        ; Class name is Settings
+        ; The file name will be converted to lowercase per Java convention
         generate Java com/my_company/component/Settings.java
     :end
 
@@ -288,16 +288,16 @@ The above example will pass the settings defined by settings.gdef to the scripts
 The python module will be set up with the following properties:
 
 * `__name__` = "<globifest"
-	* This allows alternate invocation methods of the script
+  * This allows alternate invocation methods of the script
 * `DEFINITIONS` = A list of `GlobifestLib.Util.Container` objects containing the following keys:
-	* `param` = A `GlobifestLib.DefTree.Parameter` object describing the parameter
-	* `value` = The object's value (class is dependent upon the parameter type; ex: `int`, `float`, `string`, `bool`...)
+  * `param` = A `GlobifestLib.DefTree.Parameter` object describing the parameter
+  * `value` = The object's value (class is dependent upon the parameter type; ex: `int`, `float`, `string`, `bool`...)
 * `OUT_FILE` = Absolute path to target file
 * `OUT_DIR` = Absolute path to the output directory of the package
-	* **This is not necessarily the same as the parent directory of** `OUT_FILE`
+  * **This is not necessarily the same as the parent directory of** `OUT_FILE`
 * `PARAM_TYPE` = The `GlobifestLib.DefTree.PARAM_TYPE` enumeration.  This can be used in conjunction with the parameter type:
-    * Use the `.enum_id` table to convert the type to the Globifest data type string
-    * Compare the type to apply special formatting
+  * Use the `.enum_id` table to convert the type to the Globifest data type string
+  * Compare the type to apply special formatting
 * `g_print(msg)` = A function to log messages to the build output
 * `g_debug(msg)` = A function to log debug messages to the build output (visible at higher verbosity levels)
 * `g_err(msg)` = A function to raise an exception (just like `GlobifestLib.Log.E`) with a build error message.
@@ -310,4 +310,4 @@ An example script is shown below, illustrating the use of the `module.__name__` 
         g_print("Generating file: {}".format(OUT_FILE))
 
     if __name__ == "__main__":
-		print("This is being run directly from the command line or interactive interpreter")
+        print("This is being run directly from the command line or interactive interpreter")

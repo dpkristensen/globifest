@@ -378,6 +378,6 @@ The "include" directive will import another file as if the directive was literal
 
 File paths encountered in the include file will be treated as relative to the included file.  Included files may include other files as well.
 
-It is recommended that included files that contain project content use the extension ".gpi" to indicate it contains content for inclusion into a project file (as opposed to other types of Globifest content). 
+It is recommended that included files that contain project content use the extension ".gpi" to indicate it contains content for inclusion into a project file (as opposed to other types of Globifest content).
 
 For projects that share configuration layering or packages, this can reduce duplicate maintenance.

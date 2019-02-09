@@ -30,18 +30,18 @@ See samples/HelloWorld for example.  Note that the App code is not in the top-le
 When writing code that is meant to be shared for use in externally-defined applications, it is important to:
 
 * Avoid external dependencies:
-    * Folder structure (i.e., the name of the folder where someone has extracted your code into)
-    * Package names, etc...
+  * Folder structure (i.e., the name of the folder where someone has extracted your code into)
+  * Package names, etc...
 * Use (hopefully) unique names:
-    * Group definition items into a single top-level menu named after your module
-    * Use prefixes on identifiers which are unique to your module (ex: an identifier used for the `FooBaz` module might be `FOOBAZ_ENABLE_BAR`).
+  * Group definition items into a single top-level menu named after your module
+  * Use prefixes on identifiers which are unique to your module (ex: an identifier used for the `FooBaz` module might be `FOOBAZ_ENABLE_BAR`).
 * Avoid ".." in relative paths, especially at the top-level directory of your module.
 
 ### 1.4 Considerations for Top-Level Applications
 
 * Use one project file for each link-able build target (this improves portability with waf and other tools).
 * Use configuration layering for projects where the long-term goal is to generate multiple variants of a product, even if there is only one variant of some layers.
-    * Having separate layers enables these configurations to be shared between multiple project files easily.
+  * Having separate layers enables these configurations to be shared between multiple project files easily.
 * Define a "common" or "base" layer.  At some point you'll probably want to set global options that are independent of any variant-specific layer; and this will make it easier to avoid duplication of settings.
 * Separate application-specific code into its own component, to make it easier to extend the project for other build targets (unit test suite, an auxiliary tool, etc...).
 
@@ -98,13 +98,13 @@ Then you can open the file and edit it to how you prefer.  Note that the example
 One way to make it easier to maintain your project is to organize source files by folder according to what features are enabled or disabled:
 
     :source
-		:if(FOO_ENABLE_BAR)
-			bar/*.c
-		:end
+        :if(FOO_ENABLE_BAR)
+            bar/*.c
+        :end
 
-		:if(FOO_ENABLE_BAZ)
-			baz/*.c
-		:end
+        :if(FOO_ENABLE_BAZ)
+            baz/*.c
+        :end
 
 A few notable benefits to this include:
 

@@ -2,7 +2,7 @@
 
 This document covers how to integrate globifest into the waf build system.
 
-See [https://waf.io/] for more information on waf itself.
+See <https://waf.io/> for more information on waf itself.
 
 ## 0 Legal Stuff
 
