@@ -346,7 +346,7 @@ class ManifestParser(Log.Debuggable):
         Encapsulates logic to parse a manifest
     """
 
-    def __init__(self, manifest, settings, debug_mode=False, validate_files=True):
+    def __init__(self, manifest, settings, debug_mode=False, validate_files=True, def_parser=None):
         Log.Debuggable.__init__(self, debug_mode=debug_mode)
 
         self.settings = settings
@@ -354,6 +354,7 @@ class ManifestParser(Log.Debuggable):
         self.validate_files = validate_files
         self.line_info = None
         self.pkg_root = manifest.get_root()
+        self.def_parser = def_parser
 
         # Always has a context
         top_context = ConditionContext(manifest_parser=self)
@@ -522,10 +523,20 @@ class ManifestParser(Log.Debuggable):
 
     def _config_end(self, context):
         """End a config block"""
-        self.manifest.add_config(Util.Container(
+        abs_def_file = Util.get_abs_path(context.ctx.definition, self.pkg_root)
+        if self.validate_files or self.def_parser:
+            if not os.path.isfile(abs_def_file):
+                self.log_error("'{}' is not a file".format(abs_def_file))
+
+        cfg = Util.Container(
             definition=context.ctx.definition,
             generators=context.ctx.generators
-        ))
+            )
+
+        if self.def_parser:
+            cfg["definition_abs"] = self.def_parser(abs_def_file)
+            cfg["def_tree"] = self.def_parser(abs_def_file)
+        self.manifest.add_config(cfg)
 
     def _config_start(self):
         """Start a config block"""

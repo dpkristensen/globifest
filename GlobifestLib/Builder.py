@@ -76,7 +76,12 @@ def build_manifest(in_fname, settings, pkg_root, validate_files=True):
       Build a manifest with the given settings
     """
     manifest = Manifest.new(in_fname, pkg_root)
-    parser = ManifestParser.new(manifest, settings, validate_files=validate_files)
+    parser = ManifestParser.new(
+        manifest,
+        settings,
+        validate_files=validate_files,
+        def_parser=build_definition
+        )
     reader = LineReader.new(parser)
 
     reader.read_file_by_name(in_fname)
@@ -181,10 +186,8 @@ def build_project(in_fname, out_dir, settings, callbacks=Util.Container()):
                 for f in v:
                     Log.X("      {}".format(f))
         for cfg in manifest.get_configs():
-            cfg.definition = Util.get_abs_path(cfg.definition, pkg_dir)
-            Log.I("    Parsing {}".format(cfg.definition))
-            def_tree = build_definition(cfg.definition)
-            defs = def_tree.get_relevant_params(effective_settings)
+            Log.I("    Post-processing {}".format(cfg.definition_abs))
+            defs = cfg.def_tree.get_relevant_params(effective_settings)
             for gen in cfg.generators:
                 gen_file = Util.get_abs_path(gen.get_filename(), pkg_dir)
                 gen_file = os.path.relpath(gen_file, start=pkg_dir)
