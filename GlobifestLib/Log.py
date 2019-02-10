@@ -123,9 +123,9 @@ class LoggerClass(object):
 
 Logger = LoggerClass()
 
-def E(msg, err_type=ERROR.BUILD, is_fatal=True):
+def E(msg, err_type=ERROR.BUILD, is_fatal=True, stackframe=2):
     """Log an error"""
-    Logger.log_error(msg, err_type, is_fatal, Util.get_stackframe(3))
+    Logger.log_error(msg, err_type, is_fatal, Util.get_stackframe(stackframe))
 
 
 def I(msg):

@@ -140,7 +140,7 @@ class CustomGenerator(GeneratorBase):
             PARAM_TYPE=DefTree.PARAM_TYPE,
             g_print=lambda msg: Log.I("        {}".format(str(msg))),
             g_debug=lambda msg: Log.D("        {}".format(str(msg))),
-            g_err=lambda msg: Log.E(msg) # pylint:disable=W0108
+            g_err=lambda msg: Log.E(msg, stackframe=3)
             )
         runpy.run_path(self.formatter, init_globals=args, run_name="<globifest>")
 

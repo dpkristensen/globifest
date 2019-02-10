@@ -250,7 +250,7 @@ class ProjectParser(Log.Debuggable):
 
             @note This does not return
         """
-        Log.E("{}: {}".format(self.line_info, err_text))
+        Log.E("{}: {}".format(self.line_info, err_text), stackframe=3)
 
     def parse(self, line_info):
         """

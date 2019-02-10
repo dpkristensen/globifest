@@ -78,7 +78,7 @@ class StatefulParser(StateMachine.Base):
                     frame.f_code.co_filename,
                     frame.f_lineno
                     )
-        Log.E(err_text, is_fatal=False)
+        Log.E(err_text, is_fatal=False, stackframe=3)
         self.status = PARSE_STATUS.ERROR
 
     def get_parsed_text(self):

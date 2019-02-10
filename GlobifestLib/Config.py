@@ -96,6 +96,6 @@ class Config(object):
 
             @note The error may not be fatal, so it should be handled as well.
         """
-        Log.E(msg, err_type=self.err_ctx, is_fatal=self.err_fatal)
+        Log.E(msg, err_type=self.err_ctx, is_fatal=self.err_fatal, stackframe=3)
 
 new = Config

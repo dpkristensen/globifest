@@ -152,7 +152,7 @@ class ActionBase(object):
 
     def log_error(self, text):
         """Log an error performing an action"""
-        Log.E("  {}: {}".format(self.ACTION_TYPE, text))
+        Log.E("  {}: {}".format(self.ACTION_TYPE, text), stackframe=3)
 
     def log_info(self, text):
         """Log information pertinent to the action"""
