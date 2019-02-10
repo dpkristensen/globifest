@@ -182,7 +182,7 @@ class JavaGenerator(GeneratorBase):
             ]))
 
             # Add values
-            template = "    public final {} {} = {};\n"
+            template = "    public final static {} {} = {};\n"
             for d in definitions:
                 ptype = d.param.get_type()
                 pid = d.param.get_identifier()
