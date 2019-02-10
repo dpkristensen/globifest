@@ -142,7 +142,26 @@ class Parameter(object):
         """Returns the title if present, or the identifier otherwise"""
         return self.ptitle or self.pid
 
-class PrintObserver(object):
+class BaseObserver(object):
+    """Base class for walk() observers"""
+
+    def on_def_begin(self, _filename):
+        """Handler for the beginning of a DefTree"""
+        pass
+
+    def on_param(self, _param):
+        """Handle a parameter"""
+        pass
+
+    def on_scope_begin(self, _title, _description):
+        """Handle the beginning of a scope"""
+        pass
+
+    def on_scope_end(self):
+        """Handle the end of a scope"""
+        pass
+
+class PrintObserver(BaseObserver):
     """This class can be used to print a Scope or DefTree"""
 
     def __init__(self):
@@ -175,7 +194,7 @@ class PrintObserver(object):
     def _print(self, text):
         print("{}{}".format("  " * self.level, str(text)))
 
-class RelevantParamMatcher(object):
+class RelevantParamMatcher(BaseObserver):
     """This class can be used to get relevant parameters from the tree"""
 
     def __init__(self, settings):
@@ -186,29 +205,16 @@ class RelevantParamMatcher(object):
         """Return a list of parameters for the relevant settings, along with its value"""
         return self.out
 
-    def on_def_begin(self, _filename):
-        """Handler for the beginning of a DefTree"""
-        pass
-
     def on_param(self, param):
         """Handle a parameter"""
         try:
             value = self.settings.get_value(param.get_identifier())
-            self.out.append(Util.Container(
-                param=param,
-                value=value
-                ))
         except KeyError:
             Log.E("Undefined value {}".format(param))
-
-    def on_scope_begin(self, _title, _description):
-        """Handle the beginning of a scope"""
-        pass
-
-    def on_scope_end(self):
-        """Handle the end of a scope"""
-        pass
-
+        self.out.append(Util.Container(
+            param=param,
+            value=value
+            ))
 
 class Scope(object):
     """Encapsulates a collection of Parameters and nested sub-Scopes"""

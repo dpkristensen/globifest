@@ -35,7 +35,7 @@ import unittest
 
 from GlobifestLib import DefTree, Settings, Util
 
-class DefTreeTestObserver(object):
+class DefTreeTestObserver(DefTree.BaseObserver):
     def __init__(self):
         self.lines = list()
 
