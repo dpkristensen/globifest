@@ -1011,13 +1011,20 @@ class App(object):
 
         # Catching KeyError here to distinguish value being present with "None" value
         try:
-            value = value_func(view_settings.get_value(pid))
-            enabled = True
+            value = view_settings.get_value(pid)
+            if value is not None:
+                value = value_func(value)
+                enabled = True
         except KeyError:
+            pass
+
+        if not enabled:
             if self.last_pid != pid:
                 # Reset the value on pid change to an undefined value
-                value = value_func(item.param.get_default_value())
-                if value is None:
+                value = item.param.get_default_value()
+                if value is not None:
+                    value = value_func(value)
+                else:
                     value = reset_value
             else:
                 # Keep showing the text, just in case the user changes their mind
