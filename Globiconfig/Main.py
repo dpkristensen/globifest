@@ -37,7 +37,7 @@ import tkinter.filedialog
 import tkinter.messagebox
 import tkinter.ttk
 
-from Globiconfig import CheckBoxText, FilterText
+from Globiconfig import CheckBoxCombo, CheckBoxText, FilterText
 from GlobifestLib import Builder, DefTree, Log, ManifestParser, Util
 
 ACCEL = Util.create_enum(
@@ -66,13 +66,6 @@ CFG_TAG = Util.create_enum(
     "MENU",
     "PARAM"
     )
-
-BOOL_VALUE_TRUE = "TRUE"
-BOOL_VALUE_FALSE = "FALSE"
-BOOL_VALUE_UNDEFINED = "UNDEFINED"
-
-# Define values that appear in the combo box for BOOL types, in order of appearance
-BOOL_VALUES = [BOOL_VALUE_UNDEFINED, BOOL_VALUE_FALSE, BOOL_VALUE_TRUE]
 
 def gui_child_sorter(children):
     """Sorter (PEP 265) for children to be shown in the config tree"""
@@ -222,8 +215,8 @@ class App(object):
         self.last_layer = ""
         self.cur_variant = tkinter.StringVar()
         self.last_variant = ""
-        self.value_cmb_text = tkinter.StringVar()
         self.value_change_enable = True
+        self.last_pid = None
 
         # Divide the window into two panes, which stretch according to the divider's size
         # pane_divider and its frames don't use normal grid layout, so these are setup
@@ -519,18 +512,7 @@ class App(object):
             )
 
         # The combo box control is not initially shown
-        self.value_cmb = tkinter.ttk.Combobox(
-            self.value_frame,
-            textvariable=self.value_cmb_text,
-            height=1
-            )
-
-        # Bind write handler to this object
-        def value_cmb_text_cb(*args):
-            """Binding method to call the handler"""
-            self.on_value_changed(self.value_cmb_text.get())
-
-        self.value_cmb_text.trace("w", value_cmb_text_cb)
+        self.value_cmb = CheckBoxCombo.Control(self.value_frame, self.on_value_changed)
 
         # The text box control is not initially shown
         self.value_txt = CheckBoxText.Control(self.value_frame, self.on_value_changed)
@@ -662,7 +644,7 @@ class App(object):
         if self._modified:
             self._save_project()
 
-    def on_value_changed(self, text):
+    def on_value_changed(self, new_value):
         """Handler for the user changing the current config's value"""
         if not self.value_change_enable:
             return
@@ -671,33 +653,31 @@ class App(object):
         param = self.cur_tree_item.param
         pid = param.get_identifier()
         ptype = param.get_type()
-        if param.get_type() == DefTree.PARAM_TYPE.BOOL:
-            if text == BOOL_VALUE_UNDEFINED:
-                view_settings.undefine(pid)
-            elif text in BOOL_VALUES:
-                view_settings.set_value(pid, text)
-            else:
-                print("Error: Invalid BOOL value {} for {}".format(text, pid))
-                return
-        elif ptype == DefTree.PARAM_TYPE.STRING:
-            if not isinstance(text, tuple):
-                print("Error: Invalid STRING value {} for {}".format(text, pid))
-                return
-            if text[0]:
-                view_settings.set_value(pid, "\"{}\"".format(text[1]))
-            else:
-                view_settings.undefine(pid)
-        elif ptype in [DefTree.PARAM_TYPE.INT, DefTree.PARAM_TYPE.FLOAT]:
-            if not isinstance(text, tuple):
-                print("Error: Invalid numeric({}) value {} for {}".format(ptype, text, pid))
-                return
-            if text[0]:
-                view_settings.set_value(pid, text[1])
-            else:
-                view_settings.undefine(pid)
-        else:
+
+        if not isinstance(new_value, tuple):
+            print(
+                "Error: Invalid {} value {} for {}".format(
+                    DefTree.PARAM_TYPE.enum_str[ptype], new_value, pid)
+                )
+            return
+
+        enabled = new_value[0]
+        text = new_value[1]
+
+        if ptype not in [ \
+            DefTree.PARAM_TYPE.BOOL, \
+            DefTree.PARAM_TYPE.INT, \
+            DefTree.PARAM_TYPE.FLOAT, \
+            DefTree.PARAM_TYPE.STRING \
+            ]:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             return
+
+        # Update the value
+        if enabled:
+            view_settings.set_value(pid, text)
+        else:
+            view_settings.undefine(pid)
 
         self._set_modified(True)
 
@@ -986,34 +966,21 @@ class App(object):
         pid = item.param.get_identifier()
         view_settings = self._get_view_settings()
 
+        value_func = lambda value: value
+        enabled = False
+        reset_value = ""
+
         # Select and configure the control based on the parameter type
         ptype = item.param.get_type()
         if ptype == DefTree.PARAM_TYPE.BOOL:
             control_to_use = self.value_cmb
-            self.value_cmb.configure(values=BOOL_VALUES)
-            self.value_cmb.state(["readonly"])
-            # Catching KeyError here to distinguish value being present with "None" value
-            try:
-                value = view_settings.get_value(pid)
-            except KeyError:
-                value = BOOL_VALUE_UNDEFINED
-            self.value_change_enable = False
-            self.value_cmb_text.set(value)
-            self.value_change_enable = True
+            self.value_cmb.set_choices(["FALSE", "TRUE"])
+            reset_value = "FALSE"
         elif ptype == DefTree.PARAM_TYPE.STRING:
             control_to_use = self.value_txt
             self.value_txt.set_text_filter(FilterText.TextFilter)
-            # Catching KeyError here to distinguish value being present with "None" value
-            try:
-                value = view_settings.get_value(pid)[1:-1] # Strip off the quotes for display
-                enabled = True
-            except KeyError:
-                # Keep showing the text, just in case the user changes their mind
-                value = self.value_txt.get_text()
-                enabled = False
-            self.value_change_enable = False
-            self.value_txt.set_value(enabled, value)
-            self.value_change_enable = True
+            # Override the value getter to strip off the quotes for display
+            value_func = lambda value: value[1:-1]
         elif ptype in [DefTree.PARAM_TYPE.INT, DefTree.PARAM_TYPE.FLOAT]:
             control_to_use = self.value_txt
             if ptype == DefTree.PARAM_TYPE.INT:
@@ -1024,21 +991,31 @@ class App(object):
                 print("Error: Unknown numeric type {} for {}".format(ptype, pid))
                 return
             self.value_txt.set_text_filter(filter_cb)
-            # Catching KeyError here to distinguish value being present with "None" value
-            try:
-                value = view_settings.get_value(pid)
-                enabled = True
-            except KeyError:
-                # Keep showing the text, just in case the user changes their mind
-                value = self.value_txt.get_text()
-                enabled = False
-            self.value_change_enable = False
-            self.value_txt.set_value(enabled, value)
-            self.value_change_enable = True
         else:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             self._hide_value_controls(True)
             return
 
+        # Catching KeyError here to distinguish value being present with "None" value
+        try:
+            value = value_func(view_settings.get_value(pid))
+            enabled = True
+        except KeyError:
+            if self.last_pid != pid:
+                # Reset the value on pid change to an undefined value
+                value = value_func(item.param.get_default_value())
+                if value is None:
+                    value = reset_value
+            else:
+                # Keep showing the text, just in case the user changes their mind
+                value = control_to_use.get_text()
+            enabled = False
+
+        self.value_change_enable = False
+        control_to_use.set_value(enabled, value)
+        self.value_change_enable = True
+
         self._hide_value_controls(False)
         control_to_use.grid(row=0, column=0, sticky=STICKY_FILL)
+
+        self.last_pid = pid
