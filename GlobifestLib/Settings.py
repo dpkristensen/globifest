@@ -105,6 +105,26 @@ class IdentToken(TokenBase):
 
     def __init__(self, ident, settings):
         self.ident = ident
+        self._lookup_ident_value(ident, settings)
+
+    def get_name(self):
+        """Override the name to return the identifier"""
+        return self.ident
+
+    def matches_class(self, base_type):
+        """Override class matching to use the class of the identifier's value"""
+        return issubclass(self.ident_class, base_type)
+
+    def matches_type(self, tok):
+        """Override token type matching to use the token type of the identifier's value"""
+        tok_type = tok.TOKEN_TYPE
+        if tok_type == IdentToken.TOKEN_TYPE:
+            tok_type = tok.ident_class.TOKEN_TYPE
+
+        return self.ident_class.TOKEN_TYPE == tok_type
+
+    def _lookup_ident_value(self, ident, settings):
+        """Look up an identifier's value"""
         if settings.has_value(ident):
             lookup_val = settings.get_value(ident)
             if lookup_val is None:
@@ -122,27 +142,17 @@ class IdentToken(TokenBase):
             elif lookup_val.isnumeric():
                 lookup_val = int(lookup_val)
                 self.ident_class = IntToken
+            elif m.is_fullmatch(settings.ident_re):
+                # Value is an identifier, look up its value
+                print("Looking up {}".format(lookup_val))
+                self._lookup_ident_value(lookup_val, settings)
+                print("Got {}".format(self.value, self.ident_class))
+                return
             else:
                 Log.E("Malformed config value {}".format(lookup_val))
             self.value = lookup_val
         else:
             Log.E("{} not defined".format(ident))
-
-    def get_name(self):
-        """Override the name to return the identifier"""
-        return self.ident
-
-    def matches_class(self, base_type):
-        """Override class matching to use the class of the identifier's value"""
-        return issubclass(self.ident_class, base_type)
-
-    def matches_type(self, tok):
-        """Override token type matching to use the token type of the identifier's value"""
-        tok_type = tok.TOKEN_TYPE
-        if tok_type == IdentToken.TOKEN_TYPE:
-            tok_type = tok.ident_class.TOKEN_TYPE
-
-        return self.ident_class.TOKEN_TYPE == tok_type
 
 class OpBase(Log.Debuggable):
     """
@@ -424,6 +434,7 @@ class Settings(Log.Debuggable):
         self.int_re = re.compile(r"^([0-9\-]+)(.*)")
         self.op_re = re.compile(r"^(!=|==|=|!|<=|<|>=|>|&&|\|\|)(.*)")
         self.whitespace_re = re.compile(r"^\s+(.*)")
+        self.implicit_configs = Util.Container()
 
         self.expr = None
 
@@ -431,10 +442,24 @@ class Settings(Log.Debuggable):
         outstr = "Configs:\n" + str(self.configs)
         return outstr
 
+    def add_implicit_configs(self, new_configs):
+        """Add implicit configuration settings"""
+        for k, v in new_configs:
+            if k in RESERVED_IDENT_MAP:
+                self.Logs.E("Identifier {} is reserved".format(k))
+            else:
+                self.implicit_configs[k] = v
+
     def extend(self, new_configs):
-        """Extend the settings to add/replace values from new_configs"""
+        """
+            Extend the settings to add/replace values from new_configs
+
+            If new_configs is a Settings object, the implicit configs are also
+            extended.
+        """
         if isinstance(new_configs, Settings):
             new_configs = new_configs.configs
+            self.add_implicit_configs(new_configs)
 
         for k, v in new_configs:
             if k in RESERVED_IDENT_MAP:
@@ -444,11 +469,14 @@ class Settings(Log.Debuggable):
 
     def get_value(self, name):
         """Returns the configuration value of the identifier"""
-        return self.configs[name]
+        try:
+            return self.configs[name]
+        except KeyError:
+            return self.implicit_configs[name]
 
     def has_value(self, name):
         """Returns whether the identifier is in the configuration"""
-        return name in self.configs
+        return (name in self.configs) or (name in self.implicit_configs)
 
     def evaluate(self, expr):
         """Evaluate the logical expression"""
@@ -606,14 +634,22 @@ class Settings(Log.Debuggable):
 
     def set_value(self, name, value):
         """Set/overwrite a value"""
+        if name in self.implicit_configs:
+            Log.E("Cannot set an implicit value")
         self.configs[name] = value
 
     def undefine(self, name):
         """Undefine a value"""
+        if name in self.implicit_configs:
+            Log.E("Cannot undefine an implicit value")
         self.configs.pop(name, None)
 
     def write_sorted(self, fileobj):
-        """Write the configs to fileobj, sorted by key"""
+        """
+            Write the configs to fileobj, sorted by key
+
+            This does NOT write implicit configurations
+        """
         for v in sorted(self.configs.keys()):
             fileobj.write("{}={}\n".format(v, self.configs[v]))
 

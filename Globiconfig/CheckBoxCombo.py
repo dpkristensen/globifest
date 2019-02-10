@@ -70,7 +70,7 @@ class Control(tkinter.Frame):
         # Bind write handler to this object
         def value_changed_cb(*args):
             """Binding method to call the observer"""
-            self.observer((self.check_var.get(), self.combo_var.get()))
+            self.observer((self.check_var.get(), self.combo_var.get(), self.combo_box.current()))
 
         self.check_var.trace("w", value_changed_cb)
         self.combo_var.trace("w", value_changed_cb)

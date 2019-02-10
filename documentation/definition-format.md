@@ -89,6 +89,7 @@ Example:
 This defines the acceptable type the user may set the value (and implicitly, also the range when applicable).  Acceptable values are:
 
 * BOOL - A logical expression, which is either TRUE or FALSE
+* ENUM - A choice from a selectable list
 * FLOAT - A "native" floating point number.
 * INT - A "native" signed integral number.
 * STRING - A text array.  Bounding by double quotes (ASCII 34) is recommended.
@@ -124,6 +125,49 @@ This is a longer, more verbose description of the setting when more detail than 
 This defines the menu path to use for this setting.
 
 Use of this parameter directly should be uncommon; favoring "menu" directives instead.  See [guidelines.md](guidelines.md) for recommended guidelines.
+
+#### 2.1.6 ENUM Type Usage
+
+##### 2.1.6.1 Choice Parameter
+
+**Parent**=config **Follows**=type **Mandatory** **Multiple**
+
+This defines a selectable choice for ENUM type:
+
+    choice <identifier> [<text>]
+
+The identifier is how the value will be defined in the settings, while the text is how it will be presented to the user in the config application.  If text is omitted, the identifier string will be used.
+
+At least one choice must be defined for an ENUM type.
+
+##### 2.1.6.2 Count Parameter
+
+**Parent**=config **Follows**=type
+
+When present, this causes a counter to be defined for limit checking or other purposes:
+
+    count <identifier>
+
+A setting with the identifier given will be defined as equal to the number of choices available.  This setting will not be a selectable option in the config application.
+
+##### 2.1.6.3 Constraints
+
+* The identifiers must be globally unique, like the identifiers for the config definition itself.
+* If no default is specified, the first choice will be used.
+* The identifiers will be defined as type "INT", starting at 0 and incrementing by 1 for each successive choice.
+
+Example definition:
+
+    :config FOO_LOGGING_TYPE
+        type ENUM
+        title "Logging"
+        default FOO_LOGGING_NONE
+        choice FOO_LOGGING_NONE "None"
+        choice FOO_LOGGING_STD "Write to stdout/stderr"
+        choice FOO_LOGGING_ANDROID "Use Android Logger"
+        choice FOO_LOGGING_FILE "Write to a text file"
+        count FOO_LOGGING_COUNT
+    :end
 
 ### 2.2 Quick Configuration Entries
 

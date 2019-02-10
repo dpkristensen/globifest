@@ -132,6 +132,39 @@ class TestDefinitionParser(unittest.TestCase):
 
         self.cur_scope.pop()
 
+    def test_enums(self):
+        self.create_parser()
+        self.parse_lines(
+            ":config FOO_LOG_TYPE",
+            "    type ENUM",
+            "    title \"Logging\"",
+            "    default FOO_LOG_NONE",
+            "    choice FOO_LOG_NONE \"None\"",
+            "    choice FOO_LOG_STD \"Write to stdout/stderr\"",
+            "    count FOO_LOG_COUNT",
+            ":end",
+            ":config FOO_OS_TYPE",
+            "    type ENUM",
+            "    choice FOO_OS_WINDOWS",
+            "    choice FOO_OS_POSIX",
+            "    choice FOO_OS_CUSTOM",
+            ":end",
+            )
+
+        self.verify_deftree(Util.Container(**{
+            "/" : Util.Container(
+                params = [
+                "id=FOO_LOG_TYPE type=ENUM title=\"Logging\" default=FOO_LOG_NONE"
+                    + " count=FOO_LOG_COUNT"
+                    + " choice=FOO_LOG_NONE,\"None\""
+                    + " choice=FOO_LOG_STD,\"Write to stdout/stderr\"",
+                "id=FOO_OS_TYPE type=ENUM default=FOO_OS_WINDOWS"
+                    + " choice=FOO_OS_WINDOWS,\"FOO_OS_WINDOWS\""
+                    + " choice=FOO_OS_POSIX,\"FOO_OS_POSIX\""
+                    + " choice=FOO_OS_CUSTOM,\"FOO_OS_CUSTOM\""
+                ])
+            }))
+
     def test_full(self):
         self.create_parser()
         self.parse_lines(

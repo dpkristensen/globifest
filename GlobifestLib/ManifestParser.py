@@ -536,6 +536,7 @@ class ManifestParser(Log.Debuggable):
         if self.def_parser:
             cfg["definition_abs"] = abs_def_file
             cfg["def_tree"] = self.def_parser(abs_def_file)
+            self.settings.add_implicit_configs(cfg.def_tree.get_implicit_values())
         self.manifest.add_config(cfg)
 
     def _config_start(self):

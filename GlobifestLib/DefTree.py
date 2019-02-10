@@ -39,7 +39,8 @@ PARAM_TYPE = Util.create_enum(
     "BOOL",
     "STRING",
     "INT",
-    "FLOAT"
+    "FLOAT",
+    "ENUM"
     )
 
 SCOPE_TRIM_RE = re.compile("^/|/$")
@@ -86,6 +87,8 @@ def validate_value(ptype, value):
             ret = float(value)
         except ValueError:
             pass
+    elif ptype == PARAM_TYPE.ENUM:
+        ret = value
 
     return ret
 
@@ -97,12 +100,16 @@ class Parameter(object):
         @note This class does not validate parameter data
     """
 
-    def __init__(self, pid, ptitle, ptype, pdesc="", pdefault=None):
+    def __init__(self, pid, ptitle, ptype, pdesc="", pdefault=None, metadata=None):
         self.pid = pid
         self.ptitle = ptitle
         self.ptype = ptype
         self.pdesc = pdesc
         self.pdefault = pdefault
+        self.metadata = metadata
+
+        if (self.ptype == PARAM_TYPE.ENUM) and (not self.metadata):
+            Log.E("ENUM must have metadata")
 
     def __str__(self):
         s = list()
@@ -116,6 +123,15 @@ class Parameter(object):
             s.append("default={}".format(self.pdefault))
         if self.pdesc:
             s.append("desc={}".format(self.pdesc))
+
+        if self.ptype == PARAM_TYPE.ENUM:
+            count = self.metadata.get("count", None)
+            if count:
+                s.append("count={}".format(count))
+            vlist = self.metadata.get("vlist", [])
+            for v in vlist:
+                s.append("choice={},{}".format(v.id, v.text))
+
         return " ".join(s)
 
     def get_default_value(self):
@@ -130,6 +146,33 @@ class Parameter(object):
         """Returns the identifier of the parameter"""
         return self.pid
 
+    def get_implicit_values(self):
+        """Gets values implicitly defined by the parameter"""
+        out = []
+        if self.ptype == PARAM_TYPE.ENUM:
+            # Enumerate choices
+            counter = 0
+            for choice in self.metadata.vlist:
+                out.append((choice.id, str(counter)))
+                counter += 1
+
+            # Set count, if requested
+            count_id = self.metadata.get("count", None)
+            if count_id:
+                out.append((count_id, str(counter)))
+
+        return out
+
+    def get_implicit_value_by_id(self, pid):
+        """Returns an implicit value entry by identifier"""
+        if self.ptype == PARAM_TYPE.ENUM:
+            for choice in self.metadata.vlist:
+                if choice.id == pid:
+                    return choice
+
+        return None
+
+
     def get_title(self):
         """Returns the title of the parameter"""
         return self.ptitle
@@ -141,6 +184,10 @@ class Parameter(object):
     def get_text(self):
         """Returns the title if present, or the identifier otherwise"""
         return self.ptitle or self.pid
+
+    def get_metadata(self):
+        """Returns metadata associated with the parameter, which may be None"""
+        return self.metadata
 
 class BaseObserver(object):
     """Base class for walk() observers"""
@@ -160,6 +207,20 @@ class BaseObserver(object):
     def on_scope_end(self):
         """Handle the end of a scope"""
         pass
+
+class ImplicitValuesObserver(BaseObserver):
+    """This class can be used to get implicit settings from the tree"""
+
+    def __init__(self):
+        self.out = Util.Container()
+
+    def get_values(self):
+        """Return a container of identifier/value pairs"""
+        return self.out
+
+    def on_param(self, param):
+        """Handle a parameter"""
+        self.out.update(param.get_implicit_values())
 
 class PrintObserver(BaseObserver):
     """This class can be used to print a Scope or DefTree"""
@@ -308,6 +369,16 @@ class DefTree(Scope):
     def get_filename(self):
         """Returns the filename of the definition"""
         return self.filename
+
+    def get_implicit_values(self):
+        """
+            Returns values which implicitly defined by parameters in this tree.
+
+            The output is a container of identifier/value pairs
+        """
+        observer = ImplicitValuesObserver()
+        self.walk(observer)
+        return observer.get_values()
 
     def get_relevant_params(self, settings):
         """

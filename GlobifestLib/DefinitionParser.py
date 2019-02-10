@@ -46,7 +46,8 @@ CONFIG_ELEMENTS = Util.Container(
     default="default",
     description="desc",
     title="title",
-    type="ptype"
+    type="ptype",
+    count="cnt_id"
     )
 
 # Map of menu element strings to Context.ctx member names in no particular order
@@ -143,9 +144,18 @@ class Context(object):
                 self.def_parser.log_error("Redefinition of menu")
             else:
                 self.scope_path = value
-            return
-
-        if self.is_unique_element(CONFIG_ELEMENTS, name):
+        elif name == "choice":
+            ventry = value.split(" ", 1)
+            v_id = ventry[0]
+            try:
+                v_text = ventry[1]
+            except IndexError:
+                v_text = "\"{}\"".format(v_id)
+            self.ctx.vlist.append(Util.Container(
+                id=v_id,
+                text=v_text
+                ))
+        elif self.is_unique_element(CONFIG_ELEMENTS, name):
             if name == "type":
                 self.ctx.ptype = DefTree.validate_type(value)
                 if self.ctx.ptype is None:
@@ -187,6 +197,17 @@ class Context(object):
             self.def_parser.log_error("Missing config ID")
         elif self.ctx.ptype is None:
             self.def_parser.log_error("Missing type for config {}".format(self.ctx.id))
+
+        # Validate type-specific items
+        if self.ctx.ptype == DefTree.PARAM_TYPE.ENUM:
+            if not self.ctx.vlist:
+                self.def_parser.log_error("Missing choices for enum {}".format(self.ctx.id))
+            if not self.ctx.default:
+                self.ctx.default = self.ctx.vlist[0].id
+            self.ctx.metadata = Util.Container(
+                count=self.ctx.cnt_id,
+                vlist=self.ctx.vlist
+                )
 
 class DefinitionParser(Log.Debuggable):
     """
@@ -314,12 +335,14 @@ class DefinitionParser(Log.Debuggable):
         scope_path = context.get_scope_path()
         self.debug("  {} @ {}".format(context.ctx.id, scope_path))
         scope = self.deftree.get_scope(scope_path)
+
         scope.add_param(DefTree.Parameter(
             pid=context.ctx.id,
             ptitle=context.ctx.title,
             ptype=context.ctx.ptype,
             pdesc=context.ctx.desc,
-            pdefault=context.ctx.default
+            pdefault=context.ctx.default,
+            metadata=context.ctx.metadata
             ))
 
     def _config_start(self, quick_type, text):
@@ -357,7 +380,10 @@ class DefinitionParser(Log.Debuggable):
                 scope_path=None,
                 desc=None,
                 ptype=ptype,
-                default=None
+                default=None,
+                cnt_id=None,
+                vlist=[],
+                metadata=None
                 )
             )
         self.context_stack.append(new_context)

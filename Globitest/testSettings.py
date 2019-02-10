@@ -178,6 +178,16 @@ class TestSettings(unittest.TestCase):
         self.assertTrue(self.config.evaluate("b==56"))
         self.assertTrue(self.config.evaluate("c==78"))
 
+    def test_ident_as_ident(self):
+        self.create_config_set(Util.Container(
+            bActualValue="TRUE",
+            bIdentValue="bActualValue",
+            iActualValue="1",
+            iIdentValue="iActualValue"
+            ))
+        self.assertTrue(self.config.evaluate("bIdentValue"))
+        self.assertTrue(self.config.evaluate("iIdentValue == 1"))
+
     def test_ident_as_value(self):
         self.create_config_set(Util.Container(
             bTrue="TRUE",

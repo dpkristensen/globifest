@@ -99,8 +99,19 @@ class CGenerator(GeneratorBase):
                 ptype = d.param.get_type()
                 pid = d.param.get_identifier()
                 value = d.value
-                if ((ptype == DefTree.PARAM_TYPE.INT) or \
-                    (ptype == DefTree.PARAM_TYPE.FLOAT)):
+
+                # Write implicit values first
+                implicit_id = None
+                for implicit_value in d.param.get_implicit_values():
+                    hdr_file.write("#define {} ({})\n".format(
+                        implicit_value[0],
+                        implicit_value[1]
+                        ))
+                    if value == implicit_value[1]:
+                        implicit_id = implicit_value[0]
+
+                # Write the parameter
+                if ptype in [DefTree.PARAM_TYPE.INT, DefTree.PARAM_TYPE.FLOAT]:
                     # Parentheses prevent conflicts with surrounding code
                     # Default type of INT is int (i.e., signed  literal)
                     # Default type of FLOAT is double precision
@@ -115,6 +126,11 @@ class CGenerator(GeneratorBase):
                     else:
                         value = 1
                     hdr_file.write("#define {} ({})\n".format(pid, value))
+                elif ptype == DefTree.PARAM_TYPE.ENUM:
+                    if implicit_id:
+                        hdr_file.write("#define {} {}\n".format(pid, implicit_id))
+                    else:
+                        hdr_file.write("#define {} ({})\n".format(pid, value))
                 else:
                     # TODO: Handle more complex literal types:
                     # - Integral types U/L/UL/LL/ULL
@@ -187,6 +203,19 @@ class JavaGenerator(GeneratorBase):
                 ptype = d.param.get_type()
                 pid = d.param.get_identifier()
                 value = d.value
+
+                # Write implicit values first
+                implicit_id = None
+                for implicit_value in d.param.get_implicit_values():
+                    hdr_file.write(template.format(
+                        "int",
+                        implicit_value[0],
+                        implicit_value[1]
+                        ))
+                    if value == implicit_value[1]:
+                        implicit_id = implicit_value[0]
+
+                # Write the parameter
                 if ptype == DefTree.PARAM_TYPE.INT:
                     hdr_file.write(template.format("int", pid, value))
                 elif ptype == DefTree.PARAM_TYPE.FLOAT:
@@ -196,6 +225,10 @@ class JavaGenerator(GeneratorBase):
                     hdr_file.write(template.format("String", pid, value))
                 elif ptype == DefTree.PARAM_TYPE.BOOL:
                     hdr_file.write(template.format("boolean", pid, value.lower()))
+                elif ptype == DefTree.PARAM_TYPE.ENUM:
+                    if implicit_id:
+                        value = implicit_id
+                    hdr_file.write(template.format("int", pid, value))
                 else:
                     # TODO: Handle more complex literal types
                     Log.E("Unhandled value of type {}".format(str(d.param.ptype)))

@@ -56,13 +56,20 @@ if __name__ == "<globifest>":
         for entry in DEFINITIONS:
             ptype = entry.param.get_type()
             value = entry.value
+
+            for implicit_entry in entry.param.get_implicit_values():
+                value_list.append(dict(
+                    id=implicit_entry[0],
+                    type=PARAM_TYPE.enum_id[PARAM_TYPE.INT],
+                    value=implicit_entry[1]
+                    ))
             if ptype == PARAM_TYPE.BOOL:
                 value = (value != "FALSE")
             elif ptype in [PARAM_TYPE.FLOAT]:
                 value = float(value)
             elif ptype in [PARAM_TYPE.INT]:
                 value = int(value)
-            elif ptype not in [PARAM_TYPE.STRING]:
+            elif ptype not in [PARAM_TYPE.STRING, PARAM_TYPE.ENUM]:
                 g_err("Unhandled type {}".format(ptype))
             value_list.append(dict(
                 id=entry.param.get_identifier(),

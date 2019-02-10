@@ -32,9 +32,12 @@
 
 :menu Backend
     :config HW_BACKEND_TYPE
-        ; TODO: Define ENUM type and convert
-        type INT
+        type ENUM
         title Backend Type
-        description Backend to use (0=libsdl, 1=stdout, 2=Windows).
+        description Backend to use for the message.
+        choice HW_BACKEND_LIBSDL "libsdl"
+        choice HW_BACKEND_STDOUT "stdout"
+        choice HW_BACKEND_WINDOWS "Windows (MessageBox)"
+        count HW_BACKEND_COUNT
     :end
 :end

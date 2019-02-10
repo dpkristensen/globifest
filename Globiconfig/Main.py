@@ -664,7 +664,10 @@ class App(object):
         enabled = new_value[0]
         text = new_value[1]
 
-        if ptype not in [ \
+        if ptype == DefTree.PARAM_TYPE.ENUM:
+            index = new_value[2]
+            text = param.get_metadata().vlist[index].id
+        elif ptype not in [ \
             DefTree.PARAM_TYPE.BOOL, \
             DefTree.PARAM_TYPE.INT, \
             DefTree.PARAM_TYPE.FLOAT, \
@@ -991,6 +994,15 @@ class App(object):
                 print("Error: Unknown numeric type {} for {}".format(ptype, pid))
                 return
             self.value_txt.set_text_filter(filter_cb)
+        elif ptype == DefTree.PARAM_TYPE.ENUM:
+            control_to_use = self.value_cmb
+            choice_list = []
+            for entry in item.param.get_metadata().vlist:
+                choice_list.append(entry.text[1:-1]) # Cut off quotes from strings
+            self.value_cmb.set_choices(choice_list)
+            # For the display string, lookup up the text for the PID and chop off the quotes
+            value_func = lambda value: item.param.get_implicit_value_by_id(value).text[1:-1]
+            # Enums always have a default value, no need to set a reset value
         else:
             print("Error: Unhandled type {} for {}".format(ptype, pid))
             self._hide_value_controls(True)

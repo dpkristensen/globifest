@@ -102,6 +102,8 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pa.get_type(), DefTree.PARAM_TYPE.BOOL)
         self.assertEqual(self.pa.get_text(), "Value A")
         self.assertEqual(str(self.pa), "id=IDENTIFIER_A type=BOOL title=Value A default=FALSE desc=Description of A")
+        self.assertIsNone(self.pa.get_metadata())
+        self.assertListEqual(self.pa.get_implicit_values(), [])
 
         self.assertEqual(self.pb.get_default_value(), "Default Text")
         self.assertEqual(self.pb.get_description(), "")
@@ -110,6 +112,8 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pb.get_type(), DefTree.PARAM_TYPE.STRING)
         self.assertEqual(self.pb.get_text(), "Value B")
         self.assertEqual(str(self.pb), "id=IDENTIFIER_B type=STRING title=Value B default=Default Text")
+        self.assertIsNone(self.pb.get_metadata())
+        self.assertListEqual(self.pb.get_implicit_values(), [])
 
         self.assertEqual(self.pc.get_default_value(), None)
         self.assertEqual(self.pc.get_description(), "Description of C")
@@ -118,6 +122,8 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pc.get_type(), DefTree.PARAM_TYPE.INT)
         self.assertEqual(self.pc.get_text(), "Value C")
         self.assertEqual(str(self.pc), "id=IDENTIFIER_C type=INT title=Value C desc=Description of C")
+        self.assertIsNone(self.pc.get_metadata())
+        self.assertListEqual(self.pc.get_implicit_values(), [])
 
         self.assertEqual(self.pd.get_default_value(), None)
         self.assertEqual(self.pd.get_description(), "Description of D")
@@ -126,6 +132,75 @@ class TestDefTree(unittest.TestCase):
         self.assertEqual(self.pd.get_type(), DefTree.PARAM_TYPE.FLOAT)
         self.assertEqual(self.pd.get_text(), "IDENTIFIER_D")
         self.assertEqual(str(self.pd), "id=IDENTIFIER_D type=FLOAT desc=Description of D")
+        self.assertIsNone(self.pd.get_metadata())
+        self.assertListEqual(self.pd.get_implicit_values(), [])
+
+    def test_enum1(self):
+        enum_param = DefTree.Parameter(
+            pid="IDENT_ENUM_TYPE",
+            ptitle="", # Empty title
+            ptype=DefTree.PARAM_TYPE.ENUM,
+            pdesc="Description",
+            pdefault="IDENT_ENUM_A",
+            metadata=Util.Container(
+                count="IDENT_ENUM_CNT",
+                vlist=[
+                    Util.Container(
+                        id="IDENT_ENUM_A",
+                        text="\"Text for A\""
+                        ),
+                    Util.Container(
+                        id="IDENT_ENUM_B",
+                        text="\"IDENT_ENUM_B\""
+                        )
+                    ]
+                )
+            )
+        self.assertEqual(
+            str(enum_param),
+            "id=IDENT_ENUM_TYPE type=ENUM default=IDENT_ENUM_A desc=Description"
+                + " count=IDENT_ENUM_CNT"
+                + " choice=IDENT_ENUM_A,\"Text for A\""
+                + " choice=IDENT_ENUM_B,\"IDENT_ENUM_B\""
+            )
+        self.assertListEqual(
+            enum_param.get_implicit_values(), [
+            ("IDENT_ENUM_A", "0"),
+            ("IDENT_ENUM_B", "1"),
+            ("IDENT_ENUM_CNT", "2")
+            ])
+
+    def test_enum2(self):
+        enum_param = DefTree.Parameter(
+            pid="IDENT_ENUM_TYPE",
+            ptitle="Sample Enum",
+            ptype=DefTree.PARAM_TYPE.ENUM,
+            # Empty description
+            # No explicit default
+            metadata=Util.Container(
+                vlist=[
+                    Util.Container(
+                        id="IDENT_ENUM_1",
+                        text="\"Text 1\""
+                        ),
+                    Util.Container(
+                        id="IDENT_ENUM_2",
+                        text="\"Text 2\""
+                        )
+                    ]
+                )
+            )
+        self.assertEqual(
+            str(enum_param),
+            "id=IDENT_ENUM_TYPE type=ENUM title=Sample Enum"
+                + " choice=IDENT_ENUM_1,\"Text 1\""
+                + " choice=IDENT_ENUM_2,\"Text 2\""
+            )
+        self.assertListEqual(
+            enum_param.get_implicit_values(), [
+            ("IDENT_ENUM_1", "0"),
+            ("IDENT_ENUM_2", "1")
+            ])
 
     def test_flat_config(self):
         c = DefTree.new(filename="test.def")
@@ -246,6 +321,10 @@ class TestDefTree(unittest.TestCase):
             ("FLOAT", DefTree.PARAM_TYPE.FLOAT),
             ("float", DefTree.PARAM_TYPE.FLOAT),
             ("flOAt", DefTree.PARAM_TYPE.FLOAT),
+
+            ("ENUM", DefTree.PARAM_TYPE.ENUM),
+            ("enum", DefTree.PARAM_TYPE.ENUM),
+            ("eNuM", DefTree.PARAM_TYPE.ENUM),
 
             ("Bol",     None),
             ("nt",      None),

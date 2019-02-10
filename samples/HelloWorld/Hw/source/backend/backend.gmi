@@ -30,11 +30,10 @@
 
 ; This file exists to demonstrate/test how the :include directive works.
 
-; TODO: Update when HW_BACKEND_TYPE is converted to enum
-:if( HW_BACKEND_TYPE == 0 )
+:if( HW_BACKEND_TYPE == HW_BACKEND_LIBSDL )
     libsdl/*.c
-:elif( HW_BACKEND_TYPE == 1 )
+:elif( HW_BACKEND_TYPE == HW_BACKEND_STDOUT )
     stdout/*.c
-:elif( HW_BACKEND_TYPE == 2 )
+:elif( HW_BACKEND_TYPE == HW_BACKEND_WINDOWS )
     windows/*.c
 :end
