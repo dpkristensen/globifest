@@ -39,6 +39,7 @@ if __name__ == "<globifest>":
     OUT_DIR = OUT_DIR # pylint:disable=E0602
     DEFINITIONS = DEFINITIONS # pylint:disable=E0602
     PARAM_TYPE = PARAM_TYPE # pylint:disable=E0602
+    g_err = g_err # pylint:disable=E0602
     g_print = g_print # pylint:disable=E0602
 
     g_print("Generating JSON file: {}".format(OUT_FILE))
@@ -61,6 +62,8 @@ if __name__ == "<globifest>":
                 value = float(value)
             elif ptype in [PARAM_TYPE.INT]:
                 value = int(value)
+            elif ptype not in [PARAM_TYPE.STRING]:
+                g_err("Unhandled type {}".format(ptype))
             value_list.append(dict(
                 id=entry.param.get_identifier(),
                 type=PARAM_TYPE.enum_id[entry.param.get_type()],
