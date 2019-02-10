@@ -144,9 +144,7 @@ class IdentToken(TokenBase):
                 self.ident_class = IntToken
             elif m.is_fullmatch(settings.ident_re):
                 # Value is an identifier, look up its value
-                print("Looking up {}".format(lookup_val))
                 self._lookup_ident_value(lookup_val, settings)
-                print("Got {}".format(self.value, self.ident_class))
                 return
             else:
                 Log.E("Malformed config value {}".format(lookup_val))
