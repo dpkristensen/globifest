@@ -938,7 +938,8 @@ class App(object):
         # Iterate through each layer and the currently selected variant
         effective_setting = -1
         values = []
-        for layer, l_cache in self.settings_cache:
+        for layer in self.project.get_layer_names():
+            l_cache = self.settings_cache[layer]
             variant = self.settings_view_tbl[layer]
             v_cache = l_cache[self.settings_view_tbl[layer]]
             settings = v_cache.config.get_settings()
