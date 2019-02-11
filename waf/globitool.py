@@ -78,6 +78,8 @@ class Globitool():
 
     def run(self):
         """Build the project configuration and add taskgens"""
+        Globitool.GlobifestLib.Log.Logger.set_level(Logs.verbose)
+
         # Set up callbacks for Builder
         callbacks = Globitool.GlobifestLib.Util.Container(
             prebuild=Globitool._callback_prebuild,

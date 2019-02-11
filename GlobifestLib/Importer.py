@@ -411,4 +411,5 @@ class ExternalDependency(object):
         inputs = []
         for a in self.actions:
             inputs = a.run(self, inputs)
+            Log.D("    => {}".format(inputs))
         _SetupCompleteAction(cache_file_contents).run(self)
